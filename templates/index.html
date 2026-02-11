@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GroundSwell Image Metadata Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, #00d4ff, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: #94a3b8;
+            margin-top: 8px;
+            font-size: 1.1rem;
+        }
+
+        .upload-section {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 60px 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-section:hover, .upload-section.dragover {
+            border-color: #00d4ff;
+            background: rgba(0, 212, 255, 0.05);
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .upload-text {
+            font-size: 1.2rem;
+            color: #94a3b8;
+        }
+
+        .upload-text span {
+            color: #00d4ff;
+            cursor: pointer;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .processing {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-left-color: #00d4ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .results {
+            display: none;
+            margin-top: 40px;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .result-title {
+            font-size: 1.8rem;
+            color: #00d4ff;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, #00d4ff, #7c3aed);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .metadata-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 4px;
+            border-radius: 12px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            background: rgba(124, 58, 237, 0.3);
+            color: #fff;
+        }
+
+        .tab-btn:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .tab-badge {
+            display: inline-block;
+            background: rgba(0, 212, 255, 0.2);
+            color: #00d4ff;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            margin-left: 8px;
+        }
+
+        .metadata-panel {
+            display: none;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 30px;
+        }
+
+        .metadata-panel.active {
+            display: block;
+        }
+
+        .panel-header {
+            margin-bottom: 20px;
+        }
+
+        .panel-header h3 {
+            color: #7c3aed;
+            font-size: 1.1rem;
+            margin-bottom: 4px;
+        }
+
+        .panel-header p {
+            color: #64748b;
+            font-size: 0.85rem;
+        }
+
+        .metadata-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .metadata-field {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 16px;
+        }
+
+        .metadata-field.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .field-label {
+            font-size: 0.75rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .field-tag {
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-transform: none;
+            letter-spacing: 0;
+        }
+
+        .tag-exif { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+        .tag-iptc { background: rgba(34, 197, 94, 0.2); color: #86efac; }
+        .tag-xmp { background: rgba(59, 130, 246, 0.2); color: #93c5fd; }
+
+        .field-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 10px 12px;
+            color: #e2e8f0;
+            font-size: 0.95rem;
+            transition: border-color 0.2s;
+        }
+
+        .field-input:focus {
+            outline: none;
+            border-color: #7c3aed;
+        }
+
+        .field-input::placeholder {
+            color: #475569;
+        }
+
+        textarea.field-input {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .keywords-input-wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 10px;
+            min-height: 60px;
+        }
+
+        .keyword-tag {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(124, 58, 237, 0.2);
+            color: #c4b5fd;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+
+        .keyword-tag button {
+            background: none;
+            border: none;
+            color: #c4b5fd;
+            margin-left: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            line-height: 1;
+        }
+
+        .keyword-tag button:hover {
+            color: #fff;
+        }
+
+        .keyword-add-input {
+            flex: 1;
+            min-width: 120px;
+            background: transparent;
+            border: none;
+            color: #e2e8f0;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .status-message {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .status-message.success {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #86efac;
+            display: block;
+        }
+
+        .status-message.error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            display: block;
+        }
+
+        .new-upload-btn {
+            display: block;
+            width: 100%;
+            padding: 16px;
+            background: transparent;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: #94a3b8;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .new-upload-btn:hover {
+            border-color: #00d4ff;
+            color: #00d4ff;
+        }
+
+        .error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 60px;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        footer a {
+            color: #00d4ff;
+            text-decoration: none;
+        }
+
+        .saving-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .saving-overlay.active {
+            display: flex;
+        }
+
+        .saving-content {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">GroundSwell℠</div>
+            <p class="subtitle">AI-Powered Image Metadata Tool</p>
+        </header>
+
+        <div class="upload-section" id="uploadSection">
+            <div class="upload-icon">📷</div>
+            <p class="upload-text">
+                Drag & drop your image here or <span>browse files</span>
+            </p>
+            <p style="color: #64748b; margin-top: 10px; font-size: 0.9rem;">
+                Supports JPG, PNG, GIF, WEBP
+            </p>
+            <input type="file" id="fileInput" accept="image/*">
+        </div>
+
+        <div class="processing" id="processing">
+            <div class="spinner"></div>
+            <p>Analyzing image with AI...</p>
+            <p style="color: #64748b; margin-top: 10px; font-size: 0.9rem;">
+                Generating EXIF, IPTC, and XMP metadata
+            </p>
+        </div>
+
+        <div class="error" id="errorMessage"></div>
+
+        <div class="results" id="results">
+            <div class="result-header">
+                <h2 class="result-title" id="resultTitle">Image Metadata</h2>
+                <div class="button-group">
+                    <button class="btn btn-secondary" id="resetBtn">Reset to AI Generated</button>
+                    <button class="btn btn-primary" id="saveDownloadBtn">Save & Download</button>
+                </div>
+            </div>
+
+            <div id="statusMessage" class="status-message"></div>
+
+            <!-- Tabs -->
+            <div class="metadata-tabs">
+                <button class="tab-btn active" data-tab="exif">
+                    EXIF <span class="tab-badge">5 fields</span>
+                </button>
+                <button class="tab-btn" data-tab="iptc">
+                    IPTC <span class="tab-badge">10 fields</span>
+                </button>
+                <button class="tab-btn" data-tab="xmp">
+                    XMP <span class="tab-badge">14 fields</span>
+                </button>
+            </div>
+
+            <!-- EXIF Panel -->
+            <div class="metadata-panel active" id="panel-exif">
+                <div class="panel-header">
+                    <h3>EXIF - Exchangeable Image File Format</h3>
+                    <p>Standard metadata embedded in image files by cameras and image software</p>
+                </div>
+                <div class="metadata-grid">
+                    <div class="metadata-field">
+                        <div class="field-label">
+                            Create Date
+                            <span class="field-tag tag-exif">EXIF:CreateDate</span>
+                        </div>
+                        <input type="date" class="field-input" id="exif_create_date" data-field="exif_create_date">
+                    </div>
+                    <div class="metadata-field">
+                        <div class="field-label">
+                            Artist
+                            <span class="field-tag tag-exif">EXIF:Artist</span>
+                        </div>
+                        <input type="text" class="field-input" id="exif_artist" data-field="exif_artist" value="GroundSwell">
+                    </div>
+                    <div class="metadata-field">
+                        <div class="field-label">
+                            Copyright
+                            <span class="field-tag tag-exif">EXIF:Copyright</span>
+                        </div>
+                        <input type="text" class="field-input" id="exif_copyright" data-field="exif_copyright">
+                    </div>
+                    <div class="metadata-field full-width">
+                        <div class="field-label">
+                            Image Description
+                            <span class="field-tag tag-exif">EXIF:ImageDescription</span>
+                        </div>
+                        <textarea class="field-input" id="exif_description" data-field="exif_description" placeholder="Detailed description of the image..."></textarea>
+                    </div>
+                    <div class="metadata-field full-width">
+                        <div class="field-label">
+                            User Comment (Keywords)
+                            <span class="field-tag tag-exif">EXIF:UserComment</span>
+                        </div>
+                        <textarea class="field-input" id="exif_user_comment" data-field="exif_user_comment" placeholder="Comma-separated keywords..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- IPTC Panel -->
+            <div class="metadata-panel" id="panel-iptc">
+                <div class="panel-header">
+                    <h3>IPTC - International Press Telecommunications Council</h3>
+                    <p>Industry standard for news and media metadata</p>
+                </div>
+                <div class="metadata-grid">
+                    <div class="metadata-field">
+                        <div class="field-label">
+                            Object Name / Title
+                            <span class="field-tag tag-iptc">IPTC:ObjectName</span>
+                        </div>
+                        <input type="text" class="field-input" id="iptc_object_name" data-field="iptc_object_name">
+                    </div>
+                    <div class="metadata-field">
+                        <div class="field-label">
+                            Headline
+                            <span class="field-tag tag-iptc">IPTC:Headline</span>
+                        </div>
+                        <input type="text" class="field-input" id="iptc_headline" data-field="iptc_headline">
+                    </div>
+                    <div class="metadata-field full-width">
+                        <div class="field-label">
+                            Caption / Abstract
+                            <span class="field-tag tag-iptc">IPTC:Caption-Abstract</span>
+                        </div>
+                        <textarea class="field-input" id="iptc_caption" data-field="iptc_caption"></textarea>
+                    </div>
+                    <div class="metadata-field full-width">
+                        <div class="field-label">
+                            Keywords
+                            <span class="field-tag tag-iptc">IPTC:Keywords</span>
+                        </div>
+                        <textarea class="field-input" id="iptc_keywords" data-field="iptc_keywords" placeholder="Comma-separated keywords..."></textarea>
+                    </div>
+                    <div class="metadata-field">
+                        <div class="field-label">
+                            Date Created
+                            <span class="field-tag tag-iptc">IPTC:DateCreated</span>
+                        </div>
+                        <input type="date" class="field-input" id="iptc_date_created" data-field="iptc_date_created">
+                    </div>
+                    <div class="metadata-field">
+                        <div class="field-label">
+                            By-line (Creator)
+                            <span class="field-tag tag-iptc">IPTC:By-line</span>
+                        </div>
+                        <input type="text" class="field-input" id="iptc_byline" data-field="iptc_byline" value="GroundSwell">
+                    </div>
+                    <div class="metadata-field">
+                        <div class="field-label">
+                            Credit
+                            <span class="field-tag tag-iptc">IPTC:Credit</span>
+                        </div>
+                        <input type="text" class="field-input" id="iptc_credit" data-field="iptc_credit" value="GroundSwell">
+                    </div>
+                    <div class="metadata-field">
+                        <div class="field-label">
+                            Copyright Notice
+                            <span class="field-tag tag-iptc">IPTC:CopyrightNotice</span>
+                        </div>
+                        <input type="text" class="field-input" id="iptc_copyright_notice" data-field="iptc_copyright_notice">
+                    </div>
+                    <div class="metadata-field">
+                        <div class="field-label">
+                            Contact
+                            <span class="field-tag tag-iptc">IPTC:Contact</span>
+                        </div>
+                        <input type="text" class="field-input" id="iptc_contact" data-field="iptc_contact" value="groundswell.co">
+                    </div>
+                </div>
+            </div>
+
+            <!-- XMP Panel -->
+            <div class="metadata-panel" id="panel-xmp">
+                <div class="panel-header">
+                    <h3>XMP - Extensible Metadata Platform</h3>
+                    <p>Adobe's standard for processing and storing metadata in digital files</p>
+                </div>
+                <div class="metadata-grid">
+                    <div class="metadata-field">
+                        <div class="field-label">
+                            Title
+                            <span class="field-tag tag-xmp">XMP:Title</span>
+                        </div>
+                        <input type="text" class="field-input" id="xmp_title" data-field="xmp_title">
+                    </div>
+                    <div class="metadata-field">
+                        <div class="field-label">
+                            Label
+                            <span class="field-tag tag-xmp">XMP:Label</span>
+                        </div>
+                        <input type="text" class="field-input" id="xmp_label" data-field="xmp_label">
+                    </div>
+                    <div class="metadata-field">
+                        <div class="field-label">
+                            Headline
+                            <span class="field-tag tag-xmp">XMP:Headline</span>
+                        </div>
+                        <input type="text" class="field-input" id="xmp_headline" data-field="xmp_headline">
+                    </div>
+                    <div class="metadata-field full-width">
+                        <div class="field-label">
+                            Description
+                            <span class="field-tag tag-xmp">XMP:Description</span>
+                        </div>
+                        <textarea class="field-input" id="xmp_description" data-field="xmp_description"></textarea>
+                    </div>
+                    <div class="metadata-field full-width">
+                        <div class="field-label">
+                            Subject (Keywords)
+                            <span class="field-tag tag-xmp">XMP:Subject</span>
+                        </div>
+                        <textarea class="field-input" id="xmp_subject" data-field="xmp_subject" placeholder="Comma-separated keywords..."></textarea>
+                    </div>
+                    <div class="metadata-field">
+                        <div class="field-label">
+                            Date Created
+                            <span class="field-tag tag-xmp">XMP:DateCreated</span>
+                        </div>
+                        <input type="date" class="field-input" id="xmp_date_created" data-field="xmp_date_created">
+                    </div>
+                    <div class="metadata-field">
+                        <div class="field-label">
+                            Creator
+                            <span class="field-tag tag-xmp">XMP:Creator</span>
+                        </div>
+                        <input type="text" class="field-input" id="xmp_creator" data-field="xmp_creator" value="GroundSwell">
+                    </div>
+                    <div class="metadata-field">
+                        <div class="field-label">
+                            Credit
+                            <span class="field-tag tag-xmp">XMP:Credit</span>
+                        </div>
+                        <input type="text" class="field-input" id="xmp_credit" data-field="xmp_credit" value="GroundSwell">
+                    </div>
+                    <div class="metadata-field">
+                        <div class="field-label">
+                            Rights / Copyright
+                            <span class="field-tag tag-xmp">XMP:Rights</span>
+                        </div>
+                        <input type="text" class="field-input" id="xmp_rights" data-field="xmp_rights">
+                    </div>
+                    <div class="metadata-field">
+                        <div class="field-label">
+                            Copyright Status
+                            <span class="field-tag tag-xmp">XMP:CopyrightStatus</span>
+                        </div>
+                        <input type="text" class="field-input" id="xmp_copyright_status" data-field="xmp_copyright_status" value="Protected">
+                    </div>
+                    <div class="metadata-field">
+                        <div class="field-label">
+                            Source
+                            <span class="field-tag tag-xmp">XMP:Source</span>
+                        </div>
+                        <input type="text" class="field-input" id="xmp_source" data-field="xmp_source" value="GroundSwell">
+                    </div>
+                    <div class="metadata-field">
+                        <div class="field-label">
+                            Category
+                            <span class="field-tag tag-xmp">XMP:Category</span>
+                        </div>
+                        <input type="text" class="field-input" id="xmp_category" data-field="xmp_category" value="Business Ownership Platform">
+                    </div>
+                    <div class="metadata-field">
+                        <div class="field-label">
+                            Supplemental Category
+                            <span class="field-tag tag-xmp">XMP:SupplementalCategories</span>
+                        </div>
+                        <input type="text" class="field-input" id="xmp_supplemental_category" data-field="xmp_supplemental_category">
+                    </div>
+                    <div class="metadata-field">
+                        <div class="field-label">
+                            Creator Contact - Website
+                            <span class="field-tag tag-xmp">XMP:CreatorContactInfo</span>
+                        </div>
+                        <input type="text" class="field-input" id="xmp_website" data-field="xmp_website" value="www.groundswell.co">
+                    </div>
+                    <div class="metadata-field">
+                        <div class="field-label">
+                            Creator Contact - Phone
+                            <span class="field-tag tag-xmp">XMP:CreatorContactInfo</span>
+                        </div>
+                        <input type="text" class="field-input" id="xmp_phone" data-field="xmp_phone" value="435-214-2997">
+                    </div>
+                </div>
+            </div>
+
+            <button class="new-upload-btn" id="newUploadBtn">
+                Upload Another Image
+            </button>
+        </div>
+
+        <footer>
+            <p>Powered by Claude AI | &copy; <span id="year"></span> <a href="https://groundswell.co" target="_blank">GroundSwell℠</a></p>
+        </footer>
+    </div>
+
+    <!-- Saving Overlay -->
+    <div class="saving-overlay" id="savingOverlay">
+        <div class="saving-content">
+            <div class="spinner"></div>
+            <p>Saving metadata to image...</p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('year').textContent = new Date().getFullYear();
+
+        const uploadSection = document.getElementById('uploadSection');
+        const fileInput = document.getElementById('fileInput');
+        const processing = document.getElementById('processing');
+        const results = document.getElementById('results');
+        const errorMessage = document.getElementById('errorMessage');
+        const statusMessage = document.getElementById('statusMessage');
+        const savingOverlay = document.getElementById('savingOverlay');
+
+        let currentFileId = null;
+        let originalMetadata = null;
+
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.metadata-panel').forEach(p => p.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+            });
+        });
+
+        // Click to upload
+        uploadSection.addEventListener('click', () => fileInput.click());
+
+        // Drag and drop
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.classList.add('dragover');
+        });
+
+        uploadSection.addEventListener('dragleave', () => {
+            uploadSection.classList.remove('dragover');
+        });
+
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        // File input change
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        // New upload button
+        document.getElementById('newUploadBtn').addEventListener('click', () => {
+            results.style.display = 'none';
+            errorMessage.style.display = 'none';
+            statusMessage.style.display = 'none';
+            uploadSection.style.display = 'block';
+            fileInput.value = '';
+            currentFileId = null;
+            originalMetadata = null;
+        });
+
+        // Reset button
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            if (originalMetadata) {
+                populateFields(originalMetadata);
+                showStatus('Fields reset to AI-generated values', 'success');
+            }
+        });
+
+        // Save & Download button
+        document.getElementById('saveDownloadBtn').addEventListener('click', async () => {
+            if (!currentFileId) return;
+
+            const metadata = gatherMetadata();
+            savingOverlay.classList.add('active');
+
+            try {
+                const response = await fetch('/save-metadata', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        file_id: currentFileId,
+                        metadata: metadata
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Save failed');
+                }
+
+                // Trigger download
+                window.location.href = data.download_url;
+                showStatus('Metadata saved successfully! Download starting...', 'success');
+
+            } catch (error) {
+                showStatus('Error: ' + error.message, 'error');
+            } finally {
+                savingOverlay.classList.remove('active');
+            }
+        });
+
+        async function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showError('Please upload an image file (JPG, PNG, GIF, WEBP)');
+                return;
+            }
+
+            uploadSection.style.display = 'none';
+            errorMessage.style.display = 'none';
+            statusMessage.style.display = 'none';
+            results.style.display = 'none';
+            processing.style.display = 'block';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Upload failed');
+                }
+
+                currentFileId = data.file_id;
+                originalMetadata = data.metadata;
+
+                document.getElementById('resultTitle').textContent = data.metadata.title || 'Image Metadata';
+                populateFields(data.metadata);
+                results.style.display = 'block';
+
+            } catch (error) {
+                showError(error.message || 'An error occurred while processing the image');
+                uploadSection.style.display = 'block';
+            } finally {
+                processing.style.display = 'none';
+            }
+        }
+
+        function populateFields(meta) {
+            const year = (meta.create_date || new Date().toISOString().split('T')[0]).substring(0, 4);
+            const dateValue = meta.create_date || new Date().toISOString().split('T')[0];
+            const keywords = Array.isArray(meta.keywords) ? meta.keywords.join(', ') : (meta.keywords || '');
+
+            // EXIF
+            document.getElementById('exif_create_date').value = dateValue;
+            document.getElementById('exif_artist').value = meta.artist || 'GroundSwell';
+            document.getElementById('exif_copyright').value = meta.copyright || `Copyright ${year} GroundSwell`;
+            document.getElementById('exif_description').value = meta.description || '';
+            document.getElementById('exif_user_comment').value = keywords;
+
+            // IPTC
+            document.getElementById('iptc_object_name').value = meta.title || '';
+            document.getElementById('iptc_headline').value = meta.headline || '';
+            document.getElementById('iptc_caption').value = meta.description || '';
+            document.getElementById('iptc_keywords').value = keywords;
+            document.getElementById('iptc_date_created').value = dateValue;
+            document.getElementById('iptc_byline').value = meta.artist || 'GroundSwell';
+            document.getElementById('iptc_credit').value = meta.credit || 'GroundSwell';
+            document.getElementById('iptc_copyright_notice').value = meta.copyright || `Copyright ${year} GroundSwell`;
+            document.getElementById('iptc_contact').value = meta.contact || 'groundswell.co';
+
+            // XMP
+            document.getElementById('xmp_title').value = meta.title || '';
+            document.getElementById('xmp_label').value = meta.title || '';
+            document.getElementById('xmp_headline').value = meta.headline || '';
+            document.getElementById('xmp_description').value = meta.description || '';
+            document.getElementById('xmp_subject').value = keywords;
+            document.getElementById('xmp_date_created').value = dateValue;
+            document.getElementById('xmp_creator').value = meta.artist || 'GroundSwell';
+            document.getElementById('xmp_credit').value = meta.credit || 'GroundSwell';
+            document.getElementById('xmp_rights').value = meta.copyright || `Copyright ${year} GroundSwell`;
+            document.getElementById('xmp_copyright_status').value = 'Protected';
+            document.getElementById('xmp_source').value = 'GroundSwell';
+            document.getElementById('xmp_category').value = meta.category || 'Business Ownership Platform';
+            document.getElementById('xmp_supplemental_category').value = meta.supplemental_category || '';
+            document.getElementById('xmp_website').value = meta.website || 'www.groundswell.co';
+            document.getElementById('xmp_phone').value = meta.phone || '435-214-2997';
+        }
+
+        function gatherMetadata() {
+            return {
+                // EXIF
+                exif_create_date: document.getElementById('exif_create_date').value,
+                exif_artist: document.getElementById('exif_artist').value,
+                exif_copyright: document.getElementById('exif_copyright').value,
+                exif_description: document.getElementById('exif_description').value,
+                exif_user_comment: document.getElementById('exif_user_comment').value,
+
+                // IPTC
+                iptc_object_name: document.getElementById('iptc_object_name').value,
+                iptc_headline: document.getElementById('iptc_headline').value,
+                iptc_caption: document.getElementById('iptc_caption').value,
+                iptc_keywords: document.getElementById('iptc_keywords').value,
+                iptc_date_created: document.getElementById('iptc_date_created').value,
+                iptc_byline: document.getElementById('iptc_byline').value,
+                iptc_credit: document.getElementById('iptc_credit').value,
+                iptc_copyright_notice: document.getElementById('iptc_copyright_notice').value,
+                iptc_contact: document.getElementById('iptc_contact').value,
+
+                // XMP
+                xmp_title: document.getElementById('xmp_title').value,
+                xmp_label: document.getElementById('xmp_label').value,
+                xmp_headline: document.getElementById('xmp_headline').value,
+                xmp_description: document.getElementById('xmp_description').value,
+                xmp_subject: document.getElementById('xmp_subject').value,
+                xmp_date_created: document.getElementById('xmp_date_created').value,
+                xmp_creator: document.getElementById('xmp_creator').value,
+                xmp_credit: document.getElementById('xmp_credit').value,
+                xmp_rights: document.getElementById('xmp_rights').value,
+                xmp_copyright_status: document.getElementById('xmp_copyright_status').value,
+                xmp_source: document.getElementById('xmp_source').value,
+                xmp_category: document.getElementById('xmp_category').value,
+                xmp_supplemental_category: document.getElementById('xmp_supplemental_category').value,
+                xmp_website: document.getElementById('xmp_website').value,
+                xmp_phone: document.getElementById('xmp_phone').value
+            };
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+        }
+
+        function showStatus(message, type) {
+            statusMessage.textContent = message;
+            statusMessage.className = 'status-message ' + type;
+        }
+    </script>
+</body>
+</html>

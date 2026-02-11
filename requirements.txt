@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+python-multipart
+anthropic
+Pillow
+jinja2
+aiofiles
+python-dotenv
