@@ -1,0 +1,6 @@
+fastapi
+anthropic
+pillow
+piexif
+python-multipart
+pydantic
