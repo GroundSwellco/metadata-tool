@@ -4,3 +4,5 @@ pillow
 piexif
 python-multipart
 pydantic
+beautifulsoup4
+pypdf

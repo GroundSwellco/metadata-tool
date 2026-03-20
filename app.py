@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Optional
 from io import BytesIO
 
-from fastapi import FastAPI, UploadFile, File, Request, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, Request, HTTPException
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -19,6 +19,10 @@ from PIL.PngImagePlugin import PngInfo
 import piexif
 from piexif import TYPES
 import anthropic
+import urllib.request
+import urllib.error
+from bs4 import BeautifulSoup
+from pypdf import PdfReader
 
 load_dotenv()
 
@@ -98,6 +102,49 @@ Important:
 Return ONLY the JSON object, no additional text.
 """
 
+REFERENCE_CONTEXT_PROMPT = """
+
+Additional Context Reference:
+The following content was provided as additional context for this image. Use it to generate more accurate, detailed, and contextually relevant metadata:
+
+---
+{reference_content}
+---
+
+Incorporate relevant information from this reference into the title, headline, description, and keywords.
+"""
+
+MAX_REFERENCE_LENGTH = 5000
+
+
+def fetch_url_content(url: str) -> str:
+    """Fetch and extract text content from a URL."""
+    try:
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=10) as response:
+            html = response.read().decode('utf-8', errors='ignore')
+        soup = BeautifulSoup(html, 'html.parser')
+        for element in soup(['script', 'style', 'nav', 'footer']):
+            element.decompose()
+        text = soup.get_text(separator='\n', strip=True)
+        return text[:MAX_REFERENCE_LENGTH]
+    except Exception:
+        return ""
+
+
+def extract_pdf_text(pdf_data: bytes) -> str:
+    """Extract text from PDF bytes."""
+    try:
+        reader = PdfReader(BytesIO(pdf_data))
+        text = ""
+        for page in reader.pages:
+            text += page.extract_text() or ""
+            if len(text) > MAX_REFERENCE_LENGTH:
+                break
+        return text[:MAX_REFERENCE_LENGTH]
+    except Exception:
+        return ""
+
 
 class SaveMetadataRequest(BaseModel):
     file_id: str
@@ -123,7 +170,7 @@ def get_media_type(filename: str) -> str:
     return media_types.get(ext, "image/jpeg")
 
 
-async def analyze_image_with_claude(file_path: Path, filename: str) -> dict:
+async def analyze_image_with_claude(file_path: Path, filename: str, reference_context: str = "") -> dict:
     """Use Claude to analyze the image and generate metadata."""
 
     # Encode image
@@ -137,6 +184,9 @@ async def analyze_image_with_claude(file_path: Path, filename: str) -> dict:
         current_date=current_date,
         context=GROUNDSWELL_CONTEXT
     )
+
+    if reference_context:
+        prompt += REFERENCE_CONTEXT_PROMPT.format(reference_content=reference_context)
 
     # Call Claude API with vision
     message = client.messages.create(
@@ -413,7 +463,11 @@ async def home(request: Request):
 
 
 @app.post("/upload")
-async def upload_image(file: UploadFile = File(...)):
+async def upload_image(
+    file: UploadFile = File(...),
+    context_url: Optional[str] = Form(None),
+    context_file: Optional[UploadFile] = File(None),
+):
     """Upload and process an image with AI-generated metadata."""
 
     # Validate file type
@@ -432,9 +486,17 @@ async def upload_image(file: UploadFile = File(...)):
         content = await file.read()
         f.write(content)
 
+    # Get reference context if provided
+    reference_context = ""
+    if context_url and context_url.strip():
+        reference_context = fetch_url_content(context_url.strip())
+    elif context_file and context_file.filename and context_file.size and context_file.size > 0:
+        pdf_data = await context_file.read()
+        reference_context = extract_pdf_text(pdf_data)
+
     try:
         # Analyze image with Claude
-        metadata = await analyze_image_with_claude(upload_path, original_filename)
+        metadata = await analyze_image_with_claude(upload_path, original_filename, reference_context)
 
         # Build response with file_id for later saves
         year = metadata.get("create_date", datetime.now().strftime("%Y-%m-%d"))[:4]

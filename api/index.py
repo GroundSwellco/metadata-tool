@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Optional
 from io import BytesIO
 
-from fastapi import FastAPI, UploadFile, File, Request, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, Request, HTTPException
 from fastapi.responses import HTMLResponse, Response, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -17,6 +17,10 @@ from PIL import Image
 from PIL.PngImagePlugin import PngInfo
 import piexif
 import anthropic
+import urllib.request
+import urllib.error
+from bs4 import BeautifulSoup
+from pypdf import PdfReader
 
 app = FastAPI(title="GroundSwell℠ Image Metadata Tool")
 
@@ -93,6 +97,49 @@ Important:
 Return ONLY the JSON object, no additional text.
 """
 
+REFERENCE_CONTEXT_PROMPT = """
+
+Additional Context Reference:
+The following content was provided as additional context for this image. Use it to generate more accurate, detailed, and contextually relevant metadata:
+
+---
+{reference_content}
+---
+
+Incorporate relevant information from this reference into the title, headline, description, and keywords.
+"""
+
+MAX_REFERENCE_LENGTH = 5000
+
+
+def fetch_url_content(url: str) -> str:
+    """Fetch and extract text content from a URL."""
+    try:
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=10) as response:
+            html = response.read().decode('utf-8', errors='ignore')
+        soup = BeautifulSoup(html, 'html.parser')
+        for element in soup(['script', 'style', 'nav', 'footer']):
+            element.decompose()
+        text = soup.get_text(separator='\n', strip=True)
+        return text[:MAX_REFERENCE_LENGTH]
+    except Exception:
+        return ""
+
+
+def extract_pdf_text(pdf_data: bytes) -> str:
+    """Extract text from PDF bytes."""
+    try:
+        reader = PdfReader(BytesIO(pdf_data))
+        text = ""
+        for page in reader.pages:
+            text += page.extract_text() or ""
+            if len(text) > MAX_REFERENCE_LENGTH:
+                break
+        return text[:MAX_REFERENCE_LENGTH]
+    except Exception:
+        return ""
+
 
 class SaveMetadataRequest(BaseModel):
     file_id: str
@@ -111,7 +158,7 @@ def get_media_type(filename: str) -> str:
     return media_types.get(ext, "image/jpeg")
 
 
-async def analyze_image_with_claude(image_data: bytes, filename: str) -> dict:
+async def analyze_image_with_claude(image_data: bytes, filename: str, reference_context: str = "") -> dict:
     """Use Claude to analyze the image and generate metadata."""
 
     base64_image = base64.standard_b64encode(image_data).decode("utf-8")
@@ -123,6 +170,9 @@ async def analyze_image_with_claude(image_data: bytes, filename: str) -> dict:
         current_date=current_date,
         context=GROUNDSWELL_CONTEXT
     )
+
+    if reference_context:
+        prompt += REFERENCE_CONTEXT_PROMPT.format(reference_content=reference_context)
 
     message = client.messages.create(
         model="claude-sonnet-4-20250514",
@@ -386,6 +436,17 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .panel-header h3 { color: #7c3aed; font-size: 1.1rem; margin-bottom: 4px; }
         .panel-header p { color: #64748b; font-size: 0.85rem; }
         .tab-badge { display: inline-block; background: rgba(0,212,255,0.2); color: #00d4ff; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; margin-left: 8px; }
+        .context-section { margin-top: 20px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; overflow: hidden; }
+        .context-header { padding: 16px 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; color: #94a3b8; transition: color 0.3s; user-select: none; }
+        .context-header:hover { color: #00d4ff; }
+        .context-body { padding: 0 20px 20px; display: none; }
+        .context-body.open { display: block; }
+        .context-field { margin-bottom: 12px; }
+        .context-field .field-label { font-size: 0.8rem; color: #94a3b8; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .context-divider { text-align: center; color: #475569; margin: 16px 0; font-size: 0.85rem; }
+        .pdf-upload { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .btn-small { padding: 8px 16px; font-size: 0.85rem; }
+        .context-badge { display: inline-block; background: rgba(34,197,94,0.2); color: #86efac; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; margin-left: 8px; display: none; }
     </style>
 </head>
 <body>
@@ -400,6 +461,29 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             <p>Drag & drop your image here or <span style="color:#00d4ff">browse files</span></p>
             <p style="color:#64748b;margin-top:10px;font-size:0.9rem">Supports JPG, PNG</p>
             <input type="file" id="fileInput" accept="image/*">
+        </div>
+
+        <div class="context-section" id="contextSection">
+            <div class="context-header" id="contextHeader">
+                <span>Context Reference (Optional)<span class="context-badge" id="contextBadge">Added</span></span>
+                <span class="toggle-icon" id="contextToggle">&#9660;</span>
+            </div>
+            <div class="context-body" id="contextBody">
+                <p style="color:#64748b;font-size:0.85rem;margin-bottom:16px;">Provide a URL or PDF to help the AI generate more accurate metadata</p>
+                <div class="context-field">
+                    <div class="field-label">Website URL</div>
+                    <input type="url" class="field-input" id="contextUrl" placeholder="https://example.com/article-about-this-image">
+                </div>
+                <div class="context-divider">&#8212; or &#8212;</div>
+                <div class="context-field">
+                    <div class="field-label">Upload PDF</div>
+                    <div class="pdf-upload">
+                        <button class="btn btn-secondary btn-small" type="button" id="pdfBtn">Choose PDF</button>
+                        <span style="color:#94a3b8;font-size:0.85rem;" id="pdfFileName">No file selected</span>
+                        <input type="file" id="pdfInput" accept=".pdf" style="display:none">
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="processing" id="processing">
@@ -490,6 +574,29 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         let currentFileId = null;
         let originalMetadata = null;
 
+        // Context Reference toggle
+        document.getElementById('contextHeader').addEventListener('click', () => {
+            const body = document.getElementById('contextBody');
+            const toggle = document.getElementById('contextToggle');
+            body.classList.toggle('open');
+            toggle.innerHTML = body.classList.contains('open') ? '&#9650;' : '&#9660;';
+        });
+
+        // PDF file picker
+        document.getElementById('pdfBtn').addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('pdfInput').click(); });
+        document.getElementById('pdfInput').addEventListener('change', (e) => {
+            const name = e.target.files[0] ? e.target.files[0].name : 'No file selected';
+            document.getElementById('pdfFileName').textContent = name;
+            updateContextBadge();
+        });
+        document.getElementById('contextUrl').addEventListener('input', updateContextBadge);
+
+        function updateContextBadge() {
+            const hasUrl = document.getElementById('contextUrl').value.trim() !== '';
+            const hasPdf = document.getElementById('pdfInput').files.length > 0;
+            document.getElementById('contextBadge').style.display = (hasUrl || hasPdf) ? 'inline-block' : 'none';
+        }
+
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -506,7 +613,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         fileInput.addEventListener('change', e => { if (e.target.files.length) handleFile(e.target.files[0]); });
 
         document.getElementById('newUploadBtn').addEventListener('click', () => {
-            results.style.display = 'none'; uploadSection.style.display = 'block'; fileInput.value = ''; currentFileId = null; originalMetadata = null; statusMessage.className = 'status-message';
+            results.style.display = 'none'; uploadSection.style.display = 'block'; document.getElementById('contextSection').style.display = 'block'; fileInput.value = ''; currentFileId = null; originalMetadata = null; statusMessage.className = 'status-message';
+            document.getElementById('contextUrl').value = ''; document.getElementById('pdfInput').value = ''; document.getElementById('pdfFileName').textContent = 'No file selected'; document.getElementById('contextBadge').style.display = 'none';
+            document.getElementById('contextBody').classList.remove('open'); document.getElementById('contextToggle').innerHTML = '&#9660;';
         });
 
         document.getElementById('resetBtn').addEventListener('click', () => { if (originalMetadata) { populateFields(originalMetadata); showStatus('Fields reset to AI-generated values', 'success'); } });
@@ -538,10 +647,15 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
         async function handleFile(file) {
             if (!file.type.startsWith('image/')) { alert('Please upload an image file'); return; }
-            uploadSection.style.display = 'none'; processing.style.display = 'block'; results.style.display = 'none';
+            uploadSection.style.display = 'none'; document.getElementById('contextSection').style.display = 'none'; processing.style.display = 'block'; results.style.display = 'none';
 
             const formData = new FormData();
             formData.append('file', file);
+
+            const contextUrl = document.getElementById('contextUrl').value.trim();
+            if (contextUrl) formData.append('context_url', contextUrl);
+            const pdfInput = document.getElementById('pdfInput');
+            if (pdfInput.files.length > 0) formData.append('context_file', pdfInput.files[0]);
 
             try {
                 const response = await fetch('/upload', { method: 'POST', body: formData });
@@ -555,7 +669,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 results.style.display = 'block';
             } catch (error) {
                 alert('Error: ' + error.message);
-                uploadSection.style.display = 'block';
+                uploadSection.style.display = 'block'; document.getElementById('contextSection').style.display = 'block';
             } finally {
                 processing.style.display = 'none';
             }
@@ -643,7 +757,11 @@ async def home():
 
 
 @app.post("/upload")
-async def upload_image(file: UploadFile = File(...)):
+async def upload_image(
+    file: UploadFile = File(...),
+    context_url: Optional[str] = Form(None),
+    context_file: Optional[UploadFile] = File(None),
+):
     """Upload and analyze image with AI."""
 
     allowed_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
@@ -655,6 +773,14 @@ async def upload_image(file: UploadFile = File(...)):
 
     content = await file.read()
 
+    # Get reference context if provided
+    reference_context = ""
+    if context_url and context_url.strip():
+        reference_context = fetch_url_content(context_url.strip())
+    elif context_file and context_file.filename and context_file.size and context_file.size > 0:
+        pdf_data = await context_file.read()
+        reference_context = extract_pdf_text(pdf_data)
+
     # Store in memory
     file_storage[file_id] = {
         "data": content,
@@ -662,7 +788,7 @@ async def upload_image(file: UploadFile = File(...)):
     }
 
     try:
-        metadata = await analyze_image_with_claude(content, original_filename)
+        metadata = await analyze_image_with_claude(content, original_filename, reference_context)
         year = metadata.get("create_date", datetime.now().strftime("%Y-%m-%d"))[:4]
 
         return JSONResponse({
