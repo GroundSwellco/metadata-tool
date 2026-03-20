@@ -61,7 +61,6 @@ groundswell-metadata-tool/
 The AI uses this context to generate relevant metadata:
 - **Company:** GroundSwell - Business Ownership Platform
 - **Key Concepts:** Organizational Alpha, Fractal Flywheel, Changing Pains, etc.
-- **Key People:** Bob Bennett, Cody Marshall
 - **Contact:** www.groundswell.co, 435-214-2997
 - **Categories:** Business Ownership Platform, Organizational Development, Management & Leadership
 

@@ -55,7 +55,6 @@ GroundSwell℠ focuses on:
 - Pyramid of Tech Stack Development℠
 - Direct Ownership
 
-Key people: Bob Bennett, Cody Marshall
 
 Common keywords include: equity partners, strategic partners, return on investment, business building partner,
 investment partner, Groundswell, organizational strategies, business growth, risk management, performance enhancement,
@@ -91,7 +90,7 @@ Important:
 - The title should match the concept name from the filename (remove file extension, clean up formatting)
 - The headline should convey the business value
 - The description should explain what the concept means and its importance to businesses
-- Keywords should include: the concept name, GroundSwell, relevant business terms, Bob Bennett, Cody Marshall if applicable
+- Keywords should include: the concept name, GroundSwell, relevant business terms
 - Base your response on the visual content and the GroundSwell context provided
 
 {context}
