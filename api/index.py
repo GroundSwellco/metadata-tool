@@ -436,6 +436,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .panel-header h3 { color: #7c3aed; font-size: 1.1rem; margin-bottom: 4px; }
         .panel-header p { color: #64748b; font-size: 0.85rem; }
         .tab-badge { display: inline-block; background: rgba(0,212,255,0.2); color: #00d4ff; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; margin-left: 8px; }
+        .preview-section { display: none; }
+        .preview-card { background: rgba(255,255,255,0.05); border-radius: 16px; padding: 30px; text-align: center; margin-bottom: 20px; }
+        .preview-card img { max-height: 200px; max-width: 100%; border-radius: 8px; margin-bottom: 16px; display: block; margin-left: auto; margin-right: auto; }
+        .preview-filename { color: #94a3b8; font-size: 0.95rem; margin-bottom: 12px; }
+        .generate-btn { display: block; width: 100%; padding: 16px; font-size: 1.1rem; margin-top: 20px; }
         .context-section { margin-top: 20px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; overflow: hidden; }
         .context-header { padding: 16px 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; color: #94a3b8; transition: color 0.3s; user-select: none; }
         .context-header:hover { color: #00d4ff; }
@@ -463,27 +468,37 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             <input type="file" id="fileInput" accept="image/*">
         </div>
 
-        <div class="context-section" id="contextSection">
-            <div class="context-header" id="contextHeader">
-                <span>Context Reference (Optional)<span class="context-badge" id="contextBadge">Added</span></span>
-                <span class="toggle-icon" id="contextToggle">&#9660;</span>
+        <div class="preview-section" id="previewSection">
+            <div class="preview-card">
+                <img id="imagePreview" src="" alt="Preview">
+                <p class="preview-filename" id="previewFilename"></p>
+                <button class="btn btn-secondary btn-small" type="button" id="changeImageBtn">Change Image</button>
             </div>
-            <div class="context-body" id="contextBody">
-                <p style="color:#64748b;font-size:0.85rem;margin-bottom:16px;">Provide a URL or PDF to help the AI generate more accurate metadata</p>
-                <div class="context-field">
-                    <div class="field-label">Website URL</div>
-                    <input type="url" class="field-input" id="contextUrl" placeholder="https://example.com/article-about-this-image">
+
+            <div class="context-section">
+                <div class="context-header" id="contextHeader">
+                    <span>Context Reference (Optional)<span class="context-badge" id="contextBadge">Added</span></span>
+                    <span class="toggle-icon" id="contextToggle">&#9660;</span>
                 </div>
-                <div class="context-divider">&#8212; or &#8212;</div>
-                <div class="context-field">
-                    <div class="field-label">Upload PDF</div>
-                    <div class="pdf-upload">
-                        <button class="btn btn-secondary btn-small" type="button" id="pdfBtn">Choose PDF</button>
-                        <span style="color:#94a3b8;font-size:0.85rem;" id="pdfFileName">No file selected</span>
-                        <input type="file" id="pdfInput" accept=".pdf" style="display:none">
+                <div class="context-body" id="contextBody">
+                    <p style="color:#64748b;font-size:0.85rem;margin-bottom:16px;">Provide a URL or PDF to help the AI generate more accurate metadata</p>
+                    <div class="context-field">
+                        <div class="field-label">Website URL</div>
+                        <input type="url" class="field-input" id="contextUrl" placeholder="https://example.com/article-about-this-image">
+                    </div>
+                    <div class="context-divider">&#8212; or &#8212;</div>
+                    <div class="context-field">
+                        <div class="field-label">Upload PDF</div>
+                        <div class="pdf-upload">
+                            <button class="btn btn-secondary btn-small" type="button" id="pdfBtn">Choose PDF</button>
+                            <span style="color:#94a3b8;font-size:0.85rem;" id="pdfFileName">No file selected</span>
+                            <input type="file" id="pdfInput" accept=".pdf" style="display:none">
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <button class="btn btn-primary generate-btn" id="generateBtn">Generate Metadata</button>
         </div>
 
         <div class="processing" id="processing">
@@ -573,6 +588,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
         let currentFileId = null;
         let originalMetadata = null;
+        let selectedFile = null;
 
         // Context Reference toggle
         document.getElementById('contextHeader').addEventListener('click', () => {
@@ -597,6 +613,45 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             document.getElementById('contextBadge').style.display = (hasUrl || hasPdf) ? 'inline-block' : 'none';
         }
 
+        // Change Image button
+        document.getElementById('changeImageBtn').addEventListener('click', () => {
+            selectedFile = null;
+            document.getElementById('previewSection').style.display = 'none';
+            uploadSection.style.display = 'block';
+            fileInput.value = '';
+        });
+
+        // Generate Metadata button
+        document.getElementById('generateBtn').addEventListener('click', async () => {
+            if (!selectedFile) return;
+            document.getElementById('previewSection').style.display = 'none';
+            processing.style.display = 'block';
+            results.style.display = 'none';
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            const contextUrl = document.getElementById('contextUrl').value.trim();
+            if (contextUrl) formData.append('context_url', contextUrl);
+            const pdfInput = document.getElementById('pdfInput');
+            if (pdfInput.files.length > 0) formData.append('context_file', pdfInput.files[0]);
+
+            try {
+                const response = await fetch('/upload', { method: 'POST', body: formData });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.detail || 'Upload failed');
+                currentFileId = data.file_id;
+                originalMetadata = data.metadata;
+                document.getElementById('resultTitle').textContent = data.metadata.title || 'Image Metadata';
+                populateFields(data.metadata);
+                results.style.display = 'block';
+            } catch (error) {
+                alert('Error: ' + error.message);
+                document.getElementById('previewSection').style.display = 'block';
+            } finally {
+                processing.style.display = 'none';
+            }
+        });
+
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -613,7 +668,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         fileInput.addEventListener('change', e => { if (e.target.files.length) handleFile(e.target.files[0]); });
 
         document.getElementById('newUploadBtn').addEventListener('click', () => {
-            results.style.display = 'none'; uploadSection.style.display = 'block'; document.getElementById('contextSection').style.display = 'block'; fileInput.value = ''; currentFileId = null; originalMetadata = null; statusMessage.className = 'status-message';
+            results.style.display = 'none'; document.getElementById('previewSection').style.display = 'none'; uploadSection.style.display = 'block'; fileInput.value = ''; selectedFile = null; currentFileId = null; originalMetadata = null; statusMessage.className = 'status-message';
             document.getElementById('contextUrl').value = ''; document.getElementById('pdfInput').value = ''; document.getElementById('pdfFileName').textContent = 'No file selected'; document.getElementById('contextBadge').style.display = 'none';
             document.getElementById('contextBody').classList.remove('open'); document.getElementById('contextToggle').innerHTML = '&#9660;';
         });
@@ -645,34 +700,15 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             }
         });
 
-        async function handleFile(file) {
+        function handleFile(file) {
             if (!file.type.startsWith('image/')) { alert('Please upload an image file'); return; }
-            uploadSection.style.display = 'none'; document.getElementById('contextSection').style.display = 'none'; processing.style.display = 'block'; results.style.display = 'none';
-
-            const formData = new FormData();
-            formData.append('file', file);
-
-            const contextUrl = document.getElementById('contextUrl').value.trim();
-            if (contextUrl) formData.append('context_url', contextUrl);
-            const pdfInput = document.getElementById('pdfInput');
-            if (pdfInput.files.length > 0) formData.append('context_file', pdfInput.files[0]);
-
-            try {
-                const response = await fetch('/upload', { method: 'POST', body: formData });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.detail || 'Upload failed');
-
-                currentFileId = data.file_id;
-                originalMetadata = data.metadata;
-                document.getElementById('resultTitle').textContent = data.metadata.title || 'Image Metadata';
-                populateFields(data.metadata);
-                results.style.display = 'block';
-            } catch (error) {
-                alert('Error: ' + error.message);
-                uploadSection.style.display = 'block'; document.getElementById('contextSection').style.display = 'block';
-            } finally {
-                processing.style.display = 'none';
-            }
+            selectedFile = file;
+            const reader = new FileReader();
+            reader.onload = (e) => { document.getElementById('imagePreview').src = e.target.result; };
+            reader.readAsDataURL(file);
+            document.getElementById('previewFilename').textContent = file.name;
+            uploadSection.style.display = 'none';
+            document.getElementById('previewSection').style.display = 'block';
         }
 
         function populateFields(meta) {
