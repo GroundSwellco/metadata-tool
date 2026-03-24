@@ -21,6 +21,8 @@ import urllib.request
 import urllib.error
 from bs4 import BeautifulSoup
 from pypdf import PdfReader
+from docx import Document as DocxDocument
+from openpyxl import load_workbook
 
 app = FastAPI(title="GroundSwell℠ Image Metadata Tool")
 
@@ -127,16 +129,42 @@ def fetch_url_content(url: str) -> str:
         return ""
 
 
-def extract_pdf_text(pdf_data: bytes) -> str:
-    """Extract text from PDF bytes."""
+def extract_file_text(file_data: bytes, filename: str) -> str:
+    """Extract text from uploaded file based on extension."""
+    ext = Path(filename).suffix.lower()
     try:
-        reader = PdfReader(BytesIO(pdf_data))
-        text = ""
-        for page in reader.pages:
-            text += page.extract_text() or ""
-            if len(text) > MAX_REFERENCE_LENGTH:
-                break
-        return text[:MAX_REFERENCE_LENGTH]
+        if ext == '.pdf':
+            reader = PdfReader(BytesIO(file_data))
+            text = ""
+            for page in reader.pages:
+                text += page.extract_text() or ""
+                if len(text) > MAX_REFERENCE_LENGTH:
+                    break
+            return text[:MAX_REFERENCE_LENGTH]
+        elif ext == '.docx':
+            doc = DocxDocument(BytesIO(file_data))
+            text = "\n".join(p.text for p in doc.paragraphs)
+            return text[:MAX_REFERENCE_LENGTH]
+        elif ext in ('.xlsx', '.xls'):
+            wb = load_workbook(BytesIO(file_data), read_only=True, data_only=True)
+            text = ""
+            for sheet in wb.sheetnames:
+                ws = wb[sheet]
+                for row in ws.iter_rows(values_only=True):
+                    row_text = ", ".join(str(cell) for cell in row if cell is not None)
+                    if row_text:
+                        text += row_text + "\n"
+                    if len(text) > MAX_REFERENCE_LENGTH:
+                        break
+                if len(text) > MAX_REFERENCE_LENGTH:
+                    break
+            wb.close()
+            return text[:MAX_REFERENCE_LENGTH]
+        elif ext in ('.txt', '.csv', '.md', '.json'):
+            text = file_data.decode('utf-8', errors='ignore')
+            return text[:MAX_REFERENCE_LENGTH]
+        else:
+            return ""
     except Exception:
         return ""
 
@@ -481,18 +509,18 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     <span class="toggle-icon" id="contextToggle">&#9660;</span>
                 </div>
                 <div class="context-body" id="contextBody">
-                    <p style="color:#64748b;font-size:0.85rem;margin-bottom:16px;">Provide a URL or PDF to help the AI generate more accurate metadata</p>
+                    <p style="color:#64748b;font-size:0.85rem;margin-bottom:16px;">Provide a URL or file (PDF, Word, Excel, TXT) to help the AI generate more accurate metadata</p>
                     <div class="context-field">
                         <div class="field-label">Website URL</div>
                         <input type="url" class="field-input" id="contextUrl" placeholder="https://example.com/article-about-this-image">
                     </div>
                     <div class="context-divider">&#8212; or &#8212;</div>
                     <div class="context-field">
-                        <div class="field-label">Upload PDF</div>
+                        <div class="field-label">Upload File</div>
                         <div class="pdf-upload">
-                            <button class="btn btn-secondary btn-small" type="button" id="pdfBtn">Choose PDF</button>
+                            <button class="btn btn-secondary btn-small" type="button" id="pdfBtn">Choose File</button>
                             <span style="color:#94a3b8;font-size:0.85rem;" id="pdfFileName">No file selected</span>
-                            <input type="file" id="pdfInput" accept=".pdf" style="display:none">
+                            <input type="file" id="pdfInput" accept=".pdf,.docx,.xlsx,.xls,.txt,.csv,.md,.json" style="display:none">
                         </div>
                     </div>
                 </div>
@@ -814,8 +842,8 @@ async def upload_image(
     if context_url and context_url.strip():
         reference_context = fetch_url_content(context_url.strip())
     elif context_file and context_file.filename and context_file.size and context_file.size > 0:
-        pdf_data = await context_file.read()
-        reference_context = extract_pdf_text(pdf_data)
+        file_data = await context_file.read()
+        reference_context = extract_file_text(file_data, context_file.filename)
 
     # Store in memory
     file_storage[file_id] = {

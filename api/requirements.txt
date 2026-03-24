@@ -6,3 +6,5 @@ python-multipart
 pydantic
 beautifulsoup4
 pypdf
+python-docx
+openpyxl

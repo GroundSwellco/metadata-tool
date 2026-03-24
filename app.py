@@ -23,6 +23,8 @@ import urllib.request
 import urllib.error
 from bs4 import BeautifulSoup
 from pypdf import PdfReader
+from docx import Document as DocxDocument
+from openpyxl import load_workbook
 
 load_dotenv()
 
@@ -132,16 +134,42 @@ def fetch_url_content(url: str) -> str:
         return ""
 
 
-def extract_pdf_text(pdf_data: bytes) -> str:
-    """Extract text from PDF bytes."""
+def extract_file_text(file_data: bytes, filename: str) -> str:
+    """Extract text from uploaded file based on extension."""
+    ext = Path(filename).suffix.lower()
     try:
-        reader = PdfReader(BytesIO(pdf_data))
-        text = ""
-        for page in reader.pages:
-            text += page.extract_text() or ""
-            if len(text) > MAX_REFERENCE_LENGTH:
-                break
-        return text[:MAX_REFERENCE_LENGTH]
+        if ext == '.pdf':
+            reader = PdfReader(BytesIO(file_data))
+            text = ""
+            for page in reader.pages:
+                text += page.extract_text() or ""
+                if len(text) > MAX_REFERENCE_LENGTH:
+                    break
+            return text[:MAX_REFERENCE_LENGTH]
+        elif ext == '.docx':
+            doc = DocxDocument(BytesIO(file_data))
+            text = "\n".join(p.text for p in doc.paragraphs)
+            return text[:MAX_REFERENCE_LENGTH]
+        elif ext in ('.xlsx', '.xls'):
+            wb = load_workbook(BytesIO(file_data), read_only=True, data_only=True)
+            text = ""
+            for sheet in wb.sheetnames:
+                ws = wb[sheet]
+                for row in ws.iter_rows(values_only=True):
+                    row_text = ", ".join(str(cell) for cell in row if cell is not None)
+                    if row_text:
+                        text += row_text + "\n"
+                    if len(text) > MAX_REFERENCE_LENGTH:
+                        break
+                if len(text) > MAX_REFERENCE_LENGTH:
+                    break
+            wb.close()
+            return text[:MAX_REFERENCE_LENGTH]
+        elif ext in ('.txt', '.csv', '.md', '.json'):
+            text = file_data.decode('utf-8', errors='ignore')
+            return text[:MAX_REFERENCE_LENGTH]
+        else:
+            return ""
     except Exception:
         return ""
 
@@ -491,8 +519,8 @@ async def upload_image(
     if context_url and context_url.strip():
         reference_context = fetch_url_content(context_url.strip())
     elif context_file and context_file.filename and context_file.size and context_file.size > 0:
-        pdf_data = await context_file.read()
-        reference_context = extract_pdf_text(pdf_data)
+        file_data = await context_file.read()
+        reference_context = extract_file_text(file_data, context_file.filename)
 
     try:
         # Analyze image with Claude
