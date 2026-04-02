@@ -2,11 +2,13 @@ import os
 import base64
 import json
 import uuid
+import re
 import tempfile
 import shutil
+import zipfile
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 from io import BytesIO
 
 from fastapi import FastAPI, UploadFile, File, Form, Request, HTTPException
@@ -169,9 +171,41 @@ def extract_file_text(file_data: bytes, filename: str) -> str:
         return ""
 
 
+VARIANT_DIMENSIONS = {
+    "content": None,
+    "social": (1200, 720),
+    "featured": (700, 400),
+}
+
+
+def resize_image_to_fit(image_data: bytes, max_width: int, max_height: int, file_ext: str) -> bytes:
+    """Resize image to fit within max_width x max_height, preserving aspect ratio."""
+    img = Image.open(BytesIO(image_data))
+    if img.width <= max_width and img.height <= max_height:
+        return image_data
+    img.thumbnail((max_width, max_height), Image.LANCZOS)
+    output = BytesIO()
+    if file_ext.lower() in ['.jpg', '.jpeg']:
+        img.save(output, 'JPEG', quality=95)
+    else:
+        img.save(output, 'PNG')
+    return output.getvalue()
+
+
+def generate_download_filename(original_filename: str, variant_type: str, date_str: str) -> str:
+    """Generate standardized filename: {date}-{cleaned-name}-{type}-w.{ext}"""
+    stem = Path(original_filename).stem
+    ext = Path(original_filename).suffix.lower()
+    cleaned = re.sub(r'[^a-z0-9]+', '-', stem.lower()).strip('-')
+    if not date_str:
+        date_str = datetime.now().strftime('%Y-%m-%d')
+    return f"{date_str}-{cleaned}-{variant_type}-w{ext}"
+
+
 class SaveMetadataRequest(BaseModel):
     file_id: str
     metadata: dict
+    variants: List[str] = ["content"]
 
 
 def get_media_type(filename: str) -> str:
@@ -469,6 +503,14 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .preview-card img { max-height: 200px; max-width: 100%; border-radius: 8px; margin-bottom: 16px; display: block; margin-left: auto; margin-right: auto; }
         .preview-filename { color: #94a3b8; font-size: 0.95rem; margin-bottom: 12px; }
         .generate-btn { display: block; width: 100%; padding: 16px; font-size: 1.1rem; margin-top: 20px; }
+        .variant-options { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+        .variant-options h3 { color: #7c3aed; font-size: 1.1rem; margin-bottom: 4px; }
+        .variant-options p { color: #64748b; font-size: 0.85rem; margin-bottom: 16px; }
+        .variant-checkboxes { display: flex; gap: 24px; flex-wrap: wrap; }
+        .variant-checkbox { display: flex; align-items: center; gap: 8px; color: #e2e8f0; cursor: pointer; font-size: 0.95rem; }
+        .variant-checkbox input[type="checkbox"] { accent-color: #7c3aed; width: 18px; height: 18px; }
+        .variant-checkbox input:disabled { opacity: 0.7; }
+        .variant-size { color: #64748b; font-size: 0.8rem; }
         .context-section { margin-top: 20px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; overflow: hidden; }
         .context-header { padding: 16px 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; color: #94a3b8; transition: color 0.3s; user-select: none; }
         .context-header:hover { color: #00d4ff; }
@@ -544,6 +586,16 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             </div>
 
             <div id="statusMessage" class="status-message"></div>
+
+            <div class="variant-options">
+                <h3>Download Variants</h3>
+                <p>Select which image sizes to include in your download</p>
+                <div class="variant-checkboxes">
+                    <label class="variant-checkbox"><input type="checkbox" id="variantContent" checked disabled> Content <span class="variant-size">(full size)</span></label>
+                    <label class="variant-checkbox"><input type="checkbox" id="variantSocial"> Social <span class="variant-size">(1200 x 720)</span></label>
+                    <label class="variant-checkbox"><input type="checkbox" id="variantFeatured"> Featured <span class="variant-size">(700 x 400)</span></label>
+                </div>
+            </div>
 
             <div class="metadata-tabs">
                 <button class="tab-btn active" data-tab="exif">EXIF <span class="tab-badge">5</span></button>
@@ -703,6 +755,13 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
         document.getElementById('resetBtn').addEventListener('click', () => { if (originalMetadata) { populateFields(originalMetadata); showStatus('Fields reset to AI-generated values', 'success'); } });
 
+        function getSelectedVariants() {
+            const variants = ['content'];
+            if (document.getElementById('variantSocial').checked) variants.push('social');
+            if (document.getElementById('variantFeatured').checked) variants.push('featured');
+            return variants;
+        }
+
         document.getElementById('saveDownloadBtn').addEventListener('click', async () => {
             if (!currentFileId) return;
             savingOverlay.classList.add('active');
@@ -710,17 +769,17 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 const response = await fetch('/save-metadata', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ file_id: currentFileId, metadata: gatherMetadata() })
+                    body: JSON.stringify({ file_id: currentFileId, metadata: gatherMetadata(), variants: getSelectedVariants() })
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.detail || 'Save failed');
 
-                // Download the file
+                const mimeType = data.is_zip ? 'application/zip' : 'application/octet-stream';
                 const link = document.createElement('a');
-                link.href = 'data:application/octet-stream;base64,' + data.image_data;
+                link.href = 'data:' + mimeType + ';base64,' + data.image_data;
                 link.download = data.filename;
                 link.click();
-                showStatus('Metadata saved! Download started.', 'success');
+                showStatus(data.is_zip ? data.variant_count + ' variants downloaded as zip!' : 'Metadata saved! Download started.', 'success');
             } catch (error) {
                 showStatus('Error: ' + error.message, 'error');
             } finally {
@@ -883,10 +942,15 @@ async def upload_image(
 
 @app.post("/save-metadata")
 async def save_metadata(request: SaveMetadataRequest):
-    """Save metadata to image and return as base64."""
+    """Save metadata to image variants and return as base64 (single or zip)."""
 
     file_id = request.file_id
     metadata = request.metadata
+    variants = request.variants or ["content"]
+
+    # Ensure content is always included
+    if "content" not in variants:
+        variants.insert(0, "content")
 
     if file_id not in file_storage:
         raise HTTPException(status_code=404, detail="File not found. Please upload again.")
@@ -894,20 +958,46 @@ async def save_metadata(request: SaveMetadataRequest):
     stored = file_storage[file_id]
     image_data = stored["data"]
     filename = stored["filename"]
+    ext = Path(filename).suffix
+
+    date_str = metadata.get('exif_create_date', datetime.now().strftime('%Y-%m-%d'))
 
     try:
-        processed_data = process_image_metadata(image_data, filename, metadata)
+        processed_files = []
+        for variant in variants:
+            dims = VARIANT_DIMENSIONS.get(variant)
+            if dims:
+                variant_data = resize_image_to_fit(image_data, dims[0], dims[1], ext)
+            else:
+                variant_data = image_data
 
-        title = metadata.get('xmp_title', metadata.get('iptc_object_name', 'image'))
-        safe_title = "".join(c if c.isalnum() or c in ' -_' else '' for c in title).replace(' ', '_')[:50]
-        ext = Path(filename).suffix
-        output_filename = f"{safe_title}_groundswell{ext}"
+            final_data = process_image_metadata(variant_data, filename, metadata)
+            dl_filename = generate_download_filename(filename, variant, date_str)
+            processed_files.append((dl_filename, final_data))
 
-        return JSONResponse({
-            "success": True,
-            "filename": output_filename,
-            "image_data": base64.b64encode(processed_data).decode('utf-8')
-        })
+        if len(processed_files) == 1:
+            name, data = processed_files[0]
+            return JSONResponse({
+                "success": True,
+                "filename": name,
+                "image_data": base64.b64encode(data).decode('utf-8'),
+                "is_zip": False,
+                "variant_count": 1
+            })
+        else:
+            zip_buffer = BytesIO()
+            with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+                for name, data in processed_files:
+                    zf.writestr(name, data)
+            cleaned_stem = re.sub(r'[^a-z0-9]+', '-', Path(filename).stem.lower()).strip('-')
+            zip_name = f"{date_str}-{cleaned_stem}-images.zip"
+            return JSONResponse({
+                "success": True,
+                "filename": zip_name,
+                "image_data": base64.b64encode(zip_buffer.getvalue()).decode('utf-8'),
+                "is_zip": True,
+                "variant_count": len(processed_files)
+            })
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error saving metadata: {str(e)}")

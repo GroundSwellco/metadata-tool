@@ -2,10 +2,12 @@ import os
 import base64
 import json
 import uuid
+import re
 import shutil
+import zipfile
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 from io import BytesIO
 
 from fastapi import FastAPI, UploadFile, File, Form, Request, HTTPException
@@ -174,9 +176,41 @@ def extract_file_text(file_data: bytes, filename: str) -> str:
         return ""
 
 
+VARIANT_DIMENSIONS = {
+    "content": None,
+    "social": (1200, 720),
+    "featured": (700, 400),
+}
+
+
+def resize_image_to_fit(image_data: bytes, max_width: int, max_height: int, file_ext: str) -> bytes:
+    """Resize image to fit within max_width x max_height, preserving aspect ratio."""
+    img = Image.open(BytesIO(image_data))
+    if img.width <= max_width and img.height <= max_height:
+        return image_data
+    img.thumbnail((max_width, max_height), Image.LANCZOS)
+    output = BytesIO()
+    if file_ext.lower() in ['.jpg', '.jpeg']:
+        img.save(output, 'JPEG', quality=95)
+    else:
+        img.save(output, 'PNG')
+    return output.getvalue()
+
+
+def generate_download_filename(original_filename: str, variant_type: str, date_str: str) -> str:
+    """Generate standardized filename: {date}-{cleaned-name}-{type}-w.{ext}"""
+    stem = Path(original_filename).stem
+    ext = Path(original_filename).suffix.lower()
+    cleaned = re.sub(r'[^a-z0-9]+', '-', stem.lower()).strip('-')
+    if not date_str:
+        date_str = datetime.now().strftime('%Y-%m-%d')
+    return f"{date_str}-{cleaned}-{variant_type}-w{ext}"
+
+
 class SaveMetadataRequest(BaseModel):
     file_id: str
     metadata: dict
+    variants: List[str] = ["content"]
 
 
 def encode_image_to_base64(file_path: Path) -> str:
@@ -557,34 +591,77 @@ async def upload_image(
 
 @app.post("/save-metadata")
 async def save_metadata(request: SaveMetadataRequest):
-    """Save edited metadata to the image and provide download."""
+    """Save edited metadata to image variants and provide download."""
 
     file_id = request.file_id
     metadata = request.metadata
+    variants = request.variants or ["content"]
 
-    # Find the original uploaded file
+    if "content" not in variants:
+        variants.insert(0, "content")
+
     upload_files = list(UPLOAD_DIR.glob(f"{file_id}_original.*"))
     if not upload_files:
         raise HTTPException(status_code=404, detail="Original file not found. Please upload again.")
 
     upload_path = upload_files[0]
     ext = upload_path.suffix
+    original_filename = upload_path.name.replace(f"{file_id}_original", "image") if "_original" in upload_path.name else upload_path.name
+    # Use a friendlier name based on the stored original
+    friendly_name = f"image{ext}"
+    # Try to find original filename from upload
+    for f in UPLOAD_DIR.glob(f"{file_id}_*"):
+        friendly_name = f.name.replace(f"{file_id}_original", "upload")
+        break
 
-    # Create output filename
-    title = metadata.get('xmp_title', metadata.get('iptc_object_name', 'image'))
-    safe_title = "".join(c if c.isalnum() or c in ' -_' else '' for c in title).replace(' ', '_')[:50]
-    output_filename = f"{file_id}_{safe_title}{ext}"
-    output_path = PROCESSED_DIR / output_filename
+    date_str = metadata.get('exif_create_date', datetime.now().strftime('%Y-%m-%d'))
 
-    # Write metadata using Python libraries
-    success = write_metadata_to_image(upload_path, output_path, metadata)
+    with open(upload_path, 'rb') as f:
+        image_data = f.read()
 
-    return JSONResponse({
-        "success": True,
-        "download_url": f"/download/{output_filename}",
-        "filename": output_filename,
-        "metadata_written": success
-    })
+    processed_files = []
+    for variant in variants:
+        dims = VARIANT_DIMENSIONS.get(variant)
+        if dims:
+            variant_data = resize_image_to_fit(image_data, dims[0], dims[1], ext)
+        else:
+            variant_data = image_data
+
+        # Write variant to temp file, apply metadata, read back
+        temp_input = PROCESSED_DIR / f"{file_id}_temp_in{ext}"
+        with open(temp_input, 'wb') as f:
+            f.write(variant_data)
+
+        dl_filename = generate_download_filename(upload_path.name, variant, date_str)
+        output_path = PROCESSED_DIR / dl_filename
+        write_metadata_to_image(temp_input, output_path, metadata)
+        temp_input.unlink(missing_ok=True)
+        processed_files.append(dl_filename)
+
+    if len(processed_files) == 1:
+        return JSONResponse({
+            "success": True,
+            "download_url": f"/download/{processed_files[0]}",
+            "filename": processed_files[0],
+            "is_zip": False,
+            "variant_count": 1
+        })
+    else:
+        cleaned_stem = re.sub(r'[^a-z0-9]+', '-', Path(upload_path.name).stem.lower()).strip('-')
+        zip_name = f"{date_str}-{cleaned_stem}-images.zip"
+        zip_path = PROCESSED_DIR / zip_name
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+            for fname in processed_files:
+                fpath = PROCESSED_DIR / fname
+                zf.write(fpath, fname)
+                fpath.unlink(missing_ok=True)
+        return JSONResponse({
+            "success": True,
+            "download_url": f"/download/{zip_name}",
+            "filename": zip_name,
+            "is_zip": True,
+            "variant_count": len(processed_files)
+        })
 
 
 @app.get("/download/{filename}")

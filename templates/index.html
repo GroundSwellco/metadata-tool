@@ -449,6 +449,55 @@
             margin-top: 20px;
         }
 
+        .variant-options {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .variant-options h3 {
+            color: #7c3aed;
+            font-size: 1.1rem;
+            margin-bottom: 4px;
+        }
+
+        .variant-options p {
+            color: #64748b;
+            font-size: 0.85rem;
+            margin-bottom: 16px;
+        }
+
+        .variant-checkboxes {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        .variant-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #e2e8f0;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+
+        .variant-checkbox input[type="checkbox"] {
+            accent-color: #7c3aed;
+            width: 18px;
+            height: 18px;
+        }
+
+        .variant-checkbox input:disabled {
+            opacity: 0.7;
+        }
+
+        .variant-size {
+            color: #64748b;
+            font-size: 0.8rem;
+        }
+
         .context-section {
             margin-top: 20px;
             background: rgba(255, 255, 255, 0.03);
@@ -591,6 +640,25 @@
             </div>
 
             <div id="statusMessage" class="status-message"></div>
+
+            <div class="variant-options">
+                <h3>Download Variants</h3>
+                <p>Select which image sizes to include in your download</p>
+                <div class="variant-checkboxes">
+                    <label class="variant-checkbox">
+                        <input type="checkbox" id="variantContent" checked disabled>
+                        Content <span class="variant-size">(full size)</span>
+                    </label>
+                    <label class="variant-checkbox">
+                        <input type="checkbox" id="variantSocial">
+                        Social <span class="variant-size">(1200 x 720)</span>
+                    </label>
+                    <label class="variant-checkbox">
+                        <input type="checkbox" id="variantFeatured">
+                        Featured <span class="variant-size">(700 x 400)</span>
+                    </label>
+                </div>
+            </div>
 
             <!-- Tabs -->
             <div class="metadata-tabs">
@@ -1004,6 +1072,13 @@
             }
         });
 
+        function getSelectedVariants() {
+            const variants = ['content'];
+            if (document.getElementById('variantSocial').checked) variants.push('social');
+            if (document.getElementById('variantFeatured').checked) variants.push('featured');
+            return variants;
+        }
+
         // Save & Download button
         document.getElementById('saveDownloadBtn').addEventListener('click', async () => {
             if (!currentFileId) return;
@@ -1017,7 +1092,8 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         file_id: currentFileId,
-                        metadata: metadata
+                        metadata: metadata,
+                        variants: getSelectedVariants()
                     })
                 });
 
@@ -1029,7 +1105,7 @@
 
                 // Trigger download
                 window.location.href = data.download_url;
-                showStatus('Metadata saved successfully! Download starting...', 'success');
+                showStatus(data.is_zip ? data.variant_count + ' variants downloaded as zip!' : 'Metadata saved! Download started.', 'success');
 
             } catch (error) {
                 showStatus('Error: ' + error.message, 'error');
