@@ -205,7 +205,6 @@ def generate_download_filename(original_filename: str, variant_type: str, date_s
 class SaveMetadataRequest(BaseModel):
     file_id: str
     metadata: dict
-    variants: List[str] = ["content"]
 
 
 def get_media_type(filename: str) -> str:
@@ -503,14 +502,19 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .preview-card img { max-height: 200px; max-width: 100%; border-radius: 8px; margin-bottom: 16px; display: block; margin-left: auto; margin-right: auto; }
         .preview-filename { color: #94a3b8; font-size: 0.95rem; margin-bottom: 12px; }
         .generate-btn { display: block; width: 100%; padding: 16px; font-size: 1.1rem; margin-top: 20px; }
-        .variant-options { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
-        .variant-options h3 { color: #7c3aed; font-size: 1.1rem; margin-bottom: 4px; }
-        .variant-options p { color: #64748b; font-size: 0.85rem; margin-bottom: 16px; }
-        .variant-checkboxes { display: flex; gap: 24px; flex-wrap: wrap; }
-        .variant-checkbox { display: flex; align-items: center; gap: 8px; color: #e2e8f0; cursor: pointer; font-size: 0.95rem; }
-        .variant-checkbox input[type="checkbox"] { accent-color: #7c3aed; width: 18px; height: 18px; }
-        .variant-checkbox input:disabled { opacity: 0.7; }
+        .variant-uploads-section { margin-bottom: 20px; }
+        .variant-uploads-section h3 { color: #7c3aed; font-size: 1.1rem; margin-bottom: 4px; }
+        .variant-uploads-section > p { color: #64748b; font-size: 0.85rem; margin-bottom: 16px; }
+        .variant-upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .variant-upload-card { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; }
+        .variant-upload-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; color: #e2e8f0; font-weight: 500; }
         .variant-size { color: #64748b; font-size: 0.8rem; }
+        .variant-upload-zone { border: 2px dashed rgba(255,255,255,0.15); border-radius: 8px; padding: 20px 16px; cursor: pointer; transition: all 0.3s; min-height: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .variant-upload-zone:hover { border-color: #00d4ff; background: rgba(0,212,255,0.05); }
+        .variant-upload-zone.has-file { border-color: rgba(124,58,237,0.4); border-style: solid; }
+        .variant-upload-zone img { max-height: 80px; max-width: 100%; border-radius: 4px; margin-bottom: 8px; }
+        .variant-upload-zone p { color: #64748b; font-size: 0.85rem; margin: 0; }
+        .variant-remove-btn { margin-top: 8px; font-size: 0.8rem; padding: 4px 12px; }
         .context-section { margin-top: 20px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; overflow: hidden; }
         .context-header { padding: 16px 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; color: #94a3b8; transition: color 0.3s; user-select: none; }
         .context-header:hover { color: #00d4ff; }
@@ -542,7 +546,33 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             <div class="preview-card">
                 <img id="imagePreview" src="" alt="Preview">
                 <p class="preview-filename" id="previewFilename"></p>
-                <button class="btn btn-secondary btn-small" type="button" id="changeImageBtn">Change Image</button>
+                <span style="color:#64748b;font-size:0.8rem;">Content (full size)</span>
+                <div style="margin-top:12px;"><button class="btn btn-secondary btn-small" type="button" id="changeImageBtn">Change Image</button></div>
+            </div>
+
+            <div class="variant-uploads-section">
+                <h3>Additional Variants (Optional)</h3>
+                <p>Upload separate image files for social and featured sizes</p>
+                <div class="variant-upload-grid">
+                    <div class="variant-upload-card">
+                        <div class="variant-upload-header"><span>Social</span><span class="variant-size">1200 x 720</span></div>
+                        <div class="variant-upload-zone" id="socialUploadZone">
+                            <img id="socialPreview" src="" alt="" style="display:none">
+                            <p id="socialPlaceholder">Click or drop image</p>
+                            <input type="file" id="socialInput" accept="image/*" style="display:none">
+                        </div>
+                        <button class="btn btn-secondary variant-remove-btn" id="socialRemoveBtn" style="display:none">Remove</button>
+                    </div>
+                    <div class="variant-upload-card">
+                        <div class="variant-upload-header"><span>Featured</span><span class="variant-size">700 x 400</span></div>
+                        <div class="variant-upload-zone" id="featuredUploadZone">
+                            <img id="featuredPreview" src="" alt="" style="display:none">
+                            <p id="featuredPlaceholder">Click or drop image</p>
+                            <input type="file" id="featuredInput" accept="image/*" style="display:none">
+                        </div>
+                        <button class="btn btn-secondary variant-remove-btn" id="featuredRemoveBtn" style="display:none">Remove</button>
+                    </div>
+                </div>
             </div>
 
             <div class="context-section">
@@ -586,16 +616,6 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             </div>
 
             <div id="statusMessage" class="status-message"></div>
-
-            <div class="variant-options">
-                <h3>Download Variants</h3>
-                <p>Select which image sizes to include in your download</p>
-                <div class="variant-checkboxes">
-                    <label class="variant-checkbox"><input type="checkbox" id="variantContent" checked disabled> Content <span class="variant-size">(full size)</span></label>
-                    <label class="variant-checkbox"><input type="checkbox" id="variantSocial"> Social <span class="variant-size">(1200 x 720)</span></label>
-                    <label class="variant-checkbox"><input type="checkbox" id="variantFeatured"> Featured <span class="variant-size">(700 x 400)</span></label>
-                </div>
-            </div>
 
             <div class="metadata-tabs">
                 <button class="tab-btn active" data-tab="exif">EXIF <span class="tab-badge">5</span></button>
@@ -669,6 +689,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         let currentFileId = null;
         let originalMetadata = null;
         let selectedFile = null;
+        let selectedSocialFile = null;
+        let selectedFeaturedFile = null;
 
         // Context Reference toggle
         document.getElementById('contextHeader').addEventListener('click', () => {
@@ -693,6 +715,41 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             document.getElementById('contextBadge').style.display = (hasUrl || hasPdf) ? 'inline-block' : 'none';
         }
 
+        // Variant image uploads (social & featured)
+        function setupVariantUpload(type) {
+            const zone = document.getElementById(type + 'UploadZone');
+            const input = document.getElementById(type + 'Input');
+            const preview = document.getElementById(type + 'Preview');
+            const placeholder = document.getElementById(type + 'Placeholder');
+            const removeBtn = document.getElementById(type + 'RemoveBtn');
+
+            zone.addEventListener('click', () => input.click());
+            zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.style.borderColor = '#00d4ff'; });
+            zone.addEventListener('dragleave', () => { zone.style.borderColor = ''; });
+            zone.addEventListener('drop', (e) => { e.preventDefault(); zone.style.borderColor = ''; if (e.dataTransfer.files.length) loadVariant(e.dataTransfer.files[0], type); });
+            input.addEventListener('change', (e) => { if (e.target.files.length) loadVariant(e.target.files[0], type); });
+
+            removeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (type === 'social') selectedSocialFile = null; else selectedFeaturedFile = null;
+                preview.style.display = 'none'; placeholder.style.display = 'block'; removeBtn.style.display = 'none';
+                zone.classList.remove('has-file'); input.value = '';
+            });
+        }
+        function loadVariant(file, type) {
+            if (!file.type.startsWith('image/')) return;
+            if (type === 'social') selectedSocialFile = file; else selectedFeaturedFile = file;
+            const reader = new FileReader();
+            const preview = document.getElementById(type + 'Preview');
+            const placeholder = document.getElementById(type + 'Placeholder');
+            const removeBtn = document.getElementById(type + 'RemoveBtn');
+            const zone = document.getElementById(type + 'UploadZone');
+            reader.onload = (e) => { preview.src = e.target.result; preview.style.display = 'block'; placeholder.style.display = 'none'; removeBtn.style.display = 'inline-block'; zone.classList.add('has-file'); };
+            reader.readAsDataURL(file);
+        }
+        setupVariantUpload('social');
+        setupVariantUpload('featured');
+
         // Change Image button
         document.getElementById('changeImageBtn').addEventListener('click', () => {
             selectedFile = null;
@@ -710,6 +767,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
             const formData = new FormData();
             formData.append('file', selectedFile);
+            if (selectedSocialFile) formData.append('social_file', selectedSocialFile);
+            if (selectedFeaturedFile) formData.append('featured_file', selectedFeaturedFile);
             const contextUrl = document.getElementById('contextUrl').value.trim();
             if (contextUrl) formData.append('context_url', contextUrl);
             const pdfInput = document.getElementById('pdfInput');
@@ -748,19 +807,13 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         fileInput.addEventListener('change', e => { if (e.target.files.length) handleFile(e.target.files[0]); });
 
         document.getElementById('newUploadBtn').addEventListener('click', () => {
-            results.style.display = 'none'; document.getElementById('previewSection').style.display = 'none'; uploadSection.style.display = 'block'; fileInput.value = ''; selectedFile = null; currentFileId = null; originalMetadata = null; statusMessage.className = 'status-message';
+            results.style.display = 'none'; document.getElementById('previewSection').style.display = 'none'; uploadSection.style.display = 'block'; fileInput.value = ''; selectedFile = null; selectedSocialFile = null; selectedFeaturedFile = null; currentFileId = null; originalMetadata = null; statusMessage.className = 'status-message';
             document.getElementById('contextUrl').value = ''; document.getElementById('pdfInput').value = ''; document.getElementById('pdfFileName').textContent = 'No file selected'; document.getElementById('contextBadge').style.display = 'none';
             document.getElementById('contextBody').classList.remove('open'); document.getElementById('contextToggle').innerHTML = '&#9660;';
+            ['social', 'featured'].forEach(t => { document.getElementById(t+'Preview').style.display = 'none'; document.getElementById(t+'Placeholder').style.display = 'block'; document.getElementById(t+'RemoveBtn').style.display = 'none'; document.getElementById(t+'UploadZone').classList.remove('has-file'); document.getElementById(t+'Input').value = ''; });
         });
 
         document.getElementById('resetBtn').addEventListener('click', () => { if (originalMetadata) { populateFields(originalMetadata); showStatus('Fields reset to AI-generated values', 'success'); } });
-
-        function getSelectedVariants() {
-            const variants = ['content'];
-            if (document.getElementById('variantSocial').checked) variants.push('social');
-            if (document.getElementById('variantFeatured').checked) variants.push('featured');
-            return variants;
-        }
 
         document.getElementById('saveDownloadBtn').addEventListener('click', async () => {
             if (!currentFileId) return;
@@ -769,7 +822,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 const response = await fetch('/save-metadata', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ file_id: currentFileId, metadata: gatherMetadata(), variants: getSelectedVariants() })
+                    body: JSON.stringify({ file_id: currentFileId, metadata: gatherMetadata() })
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.detail || 'Save failed');
@@ -882,6 +935,8 @@ async def home():
 @app.post("/upload")
 async def upload_image(
     file: UploadFile = File(...),
+    social_file: Optional[UploadFile] = File(None),
+    featured_file: Optional[UploadFile] = File(None),
     context_url: Optional[str] = Form(None),
     context_file: Optional[UploadFile] = File(None),
 ):
@@ -896,6 +951,19 @@ async def upload_image(
 
     content = await file.read()
 
+    # Read optional variant files
+    social_data = None
+    social_filename = None
+    if social_file and social_file.filename and social_file.size and social_file.size > 0:
+        social_data = await social_file.read()
+        social_filename = social_file.filename
+
+    featured_data = None
+    featured_filename = None
+    if featured_file and featured_file.filename and featured_file.size and featured_file.size > 0:
+        featured_data = await featured_file.read()
+        featured_filename = featured_file.filename
+
     # Get reference context if provided
     reference_context = ""
     if context_url and context_url.strip():
@@ -904,10 +972,14 @@ async def upload_image(
         file_data = await context_file.read()
         reference_context = extract_file_text(file_data, context_file.filename)
 
-    # Store in memory
+    # Store all files in memory
     file_storage[file_id] = {
         "data": content,
-        "filename": original_filename
+        "filename": original_filename,
+        "social_data": social_data,
+        "social_filename": social_filename,
+        "featured_data": featured_data,
+        "featured_filename": featured_filename,
     }
 
     try:
@@ -942,37 +1014,41 @@ async def upload_image(
 
 @app.post("/save-metadata")
 async def save_metadata(request: SaveMetadataRequest):
-    """Save metadata to image variants and return as base64 (single or zip)."""
+    """Save metadata to all uploaded image variants and return as base64 (single or zip)."""
 
     file_id = request.file_id
     metadata = request.metadata
-    variants = request.variants or ["content"]
-
-    # Ensure content is always included
-    if "content" not in variants:
-        variants.insert(0, "content")
 
     if file_id not in file_storage:
         raise HTTPException(status_code=404, detail="File not found. Please upload again.")
 
     stored = file_storage[file_id]
-    image_data = stored["data"]
-    filename = stored["filename"]
-    ext = Path(filename).suffix
-
+    content_data = stored["data"]
+    content_filename = stored["filename"]
     date_str = metadata.get('exif_create_date', datetime.now().strftime('%Y-%m-%d'))
 
     try:
-        processed_files = []
-        for variant in variants:
-            dims = VARIANT_DIMENSIONS.get(variant)
-            if dims:
-                variant_data = resize_image_to_fit(image_data, dims[0], dims[1], ext)
-            else:
-                variant_data = image_data
+        # Build list of variants to process: (variant_name, image_bytes, file_ext)
+        variants_to_process = [("content", content_data, Path(content_filename).suffix)]
 
-            final_data = process_image_metadata(variant_data, filename, metadata)
-            dl_filename = generate_download_filename(filename, variant, date_str)
+        if stored.get("social_data"):
+            variants_to_process.append(("social", stored["social_data"], Path(stored["social_filename"]).suffix))
+        if stored.get("featured_data"):
+            variants_to_process.append(("featured", stored["featured_data"], Path(stored["featured_filename"]).suffix))
+
+        processed_files = []
+        for variant_name, img_data, ext in variants_to_process:
+            # Resize to target dimensions (content stays full size)
+            dims = VARIANT_DIMENSIONS.get(variant_name)
+            if dims:
+                img_data = resize_image_to_fit(img_data, dims[0], dims[1], ext)
+
+            # Build a fake filename with correct extension for metadata processing
+            temp_filename = f"image{ext}"
+            final_data = process_image_metadata(img_data, temp_filename, metadata)
+            # Use content name but variant's own extension
+            variant_fn = Path(content_filename).stem + ext.lower()
+            dl_filename = generate_download_filename(variant_fn, variant_name, date_str)
             processed_files.append((dl_filename, final_data))
 
         if len(processed_files) == 1:
@@ -989,7 +1065,7 @@ async def save_metadata(request: SaveMetadataRequest):
             with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
                 for name, data in processed_files:
                     zf.writestr(name, data)
-            cleaned_stem = re.sub(r'[^a-z0-9]+', '-', Path(filename).stem.lower()).strip('-')
+            cleaned_stem = re.sub(r'[^a-z0-9]+', '-', Path(content_filename).stem.lower()).strip('-')
             zip_name = f"{date_str}-{cleaned_stem}-images.zip"
             return JSONResponse({
                 "success": True,

@@ -210,7 +210,6 @@ def generate_download_filename(original_filename: str, variant_type: str, date_s
 class SaveMetadataRequest(BaseModel):
     file_id: str
     metadata: dict
-    variants: List[str] = ["content"]
 
 
 def encode_image_to_base64(file_path: Path) -> str:
@@ -527,6 +526,8 @@ async def home(request: Request):
 @app.post("/upload")
 async def upload_image(
     file: UploadFile = File(...),
+    social_file: Optional[UploadFile] = File(None),
+    featured_file: Optional[UploadFile] = File(None),
     context_url: Optional[str] = Form(None),
     context_file: Optional[UploadFile] = File(None),
 ):
@@ -547,6 +548,19 @@ async def upload_image(
     with open(upload_path, "wb") as f:
         content = await file.read()
         f.write(content)
+
+    # Save optional variant files
+    if social_file and social_file.filename and social_file.size and social_file.size > 0:
+        social_ext = Path(social_file.filename).suffix or ext
+        social_path = UPLOAD_DIR / f"{file_id}_social{social_ext}"
+        with open(social_path, "wb") as f:
+            f.write(await social_file.read())
+
+    if featured_file and featured_file.filename and featured_file.size and featured_file.size > 0:
+        featured_ext = Path(featured_file.filename).suffix or ext
+        featured_path = UPLOAD_DIR / f"{file_id}_featured{featured_ext}"
+        with open(featured_path, "wb") as f:
+            f.write(await featured_file.read())
 
     # Get reference context if provided
     reference_context = ""
@@ -591,48 +605,45 @@ async def upload_image(
 
 @app.post("/save-metadata")
 async def save_metadata(request: SaveMetadataRequest):
-    """Save edited metadata to image variants and provide download."""
+    """Save metadata to all uploaded image variants and provide download."""
 
     file_id = request.file_id
     metadata = request.metadata
-    variants = request.variants or ["content"]
-
-    if "content" not in variants:
-        variants.insert(0, "content")
 
     upload_files = list(UPLOAD_DIR.glob(f"{file_id}_original.*"))
     if not upload_files:
         raise HTTPException(status_code=404, detail="Original file not found. Please upload again.")
 
     upload_path = upload_files[0]
-    ext = upload_path.suffix
-    original_filename = upload_path.name.replace(f"{file_id}_original", "image") if "_original" in upload_path.name else upload_path.name
-    # Use a friendlier name based on the stored original
-    friendly_name = f"image{ext}"
-    # Try to find original filename from upload
-    for f in UPLOAD_DIR.glob(f"{file_id}_*"):
-        friendly_name = f.name.replace(f"{file_id}_original", "upload")
-        break
-
+    content_ext = upload_path.suffix
     date_str = metadata.get('exif_create_date', datetime.now().strftime('%Y-%m-%d'))
 
-    with open(upload_path, 'rb') as f:
-        image_data = f.read()
+    # Build list of variants: (variant_name, source_path, file_ext)
+    variants_to_process = [("content", upload_path, content_ext)]
+
+    social_files = list(UPLOAD_DIR.glob(f"{file_id}_social.*"))
+    if social_files:
+        variants_to_process.append(("social", social_files[0], social_files[0].suffix))
+
+    featured_files = list(UPLOAD_DIR.glob(f"{file_id}_featured.*"))
+    if featured_files:
+        variants_to_process.append(("featured", featured_files[0], featured_files[0].suffix))
 
     processed_files = []
-    for variant in variants:
-        dims = VARIANT_DIMENSIONS.get(variant)
-        if dims:
-            variant_data = resize_image_to_fit(image_data, dims[0], dims[1], ext)
-        else:
-            variant_data = image_data
+    for variant_name, src_path, ext in variants_to_process:
+        with open(src_path, 'rb') as f:
+            img_data = f.read()
 
-        # Write variant to temp file, apply metadata, read back
+        dims = VARIANT_DIMENSIONS.get(variant_name)
+        if dims:
+            img_data = resize_image_to_fit(img_data, dims[0], dims[1], ext)
+
         temp_input = PROCESSED_DIR / f"{file_id}_temp_in{ext}"
         with open(temp_input, 'wb') as f:
-            f.write(variant_data)
+            f.write(img_data)
 
-        dl_filename = generate_download_filename(upload_path.name, variant, date_str)
+        variant_fn = Path(upload_path.name).stem.replace(f"{file_id}_original", "image") + ext.lower()
+        dl_filename = generate_download_filename(variant_fn, variant_name, date_str)
         output_path = PROCESSED_DIR / dl_filename
         write_metadata_to_image(temp_input, output_path, metadata)
         temp_input.unlink(missing_ok=True)
