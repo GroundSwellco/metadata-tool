@@ -649,30 +649,17 @@ async def save_metadata(request: SaveMetadataRequest):
         temp_input.unlink(missing_ok=True)
         processed_files.append(dl_filename)
 
-    if len(processed_files) == 1:
-        return JSONResponse({
-            "success": True,
-            "download_url": f"/download/{processed_files[0]}",
-            "filename": processed_files[0],
-            "is_zip": False,
-            "variant_count": 1
-        })
-    else:
-        cleaned_stem = re.sub(r'[^a-z0-9]+', '-', Path(upload_path.name).stem.lower()).strip('-')
-        zip_name = f"{date_str}-{cleaned_stem}-images.zip"
-        zip_path = PROCESSED_DIR / zip_name
-        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
-            for fname in processed_files:
-                fpath = PROCESSED_DIR / fname
-                zf.write(fpath, fname)
-                fpath.unlink(missing_ok=True)
-        return JSONResponse({
-            "success": True,
-            "download_url": f"/download/{zip_name}",
-            "filename": zip_name,
-            "is_zip": True,
-            "variant_count": len(processed_files)
-        })
+    cleaned_stem = re.sub(r'[^a-z0-9]+', '-', Path(upload_path.name).stem.lower()).strip('-')
+    zip_name = f"{date_str}-{cleaned_stem}-images.zip"
+
+    return JSONResponse({
+        "success": True,
+        "files": [
+            {"filename": fname, "download_url": f"/download/{fname}", "variant": vname}
+            for fname, (vname, _, _) in zip(processed_files, variants_to_process)
+        ],
+        "zip_name": zip_name
+    })
 
 
 @app.get("/download/{filename}")

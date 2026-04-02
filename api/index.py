@@ -515,6 +515,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .variant-upload-zone img { max-height: 80px; max-width: 100%; border-radius: 4px; margin-bottom: 8px; }
         .variant-upload-zone p { color: #64748b; font-size: 0.85rem; margin: 0; }
         .variant-remove-btn { margin-top: 8px; font-size: 0.8rem; padding: 4px 12px; }
+        .download-section { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 20px; margin-bottom: 20px; display: none; }
+        .download-section h3 { color: #7c3aed; font-size: 1.1rem; margin-bottom: 16px; }
+        .download-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: rgba(0,0,0,0.2); border-radius: 8px; margin-bottom: 8px; }
+        .download-item-name { color: #e2e8f0; font-size: 0.9rem; word-break: break-all; margin-right: 12px; }
+        .download-item-type { color: #64748b; font-size: 0.75rem; text-transform: uppercase; margin-right: auto; padding-left: 8px; }
+        .download-all-row { margin-top: 16px; text-align: center; }
         .context-section { margin-top: 20px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; overflow: hidden; }
         .context-header { padding: 16px 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; color: #94a3b8; transition: color 0.3s; user-select: none; }
         .context-header:hover { color: #00d4ff; }
@@ -527,6 +533,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .btn-small { padding: 8px 16px; font-size: 0.85rem; }
         .context-badge { display: inline-block; background: rgba(34,197,94,0.2); color: #86efac; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; margin-left: 8px; display: none; }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -616,6 +623,14 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             </div>
 
             <div id="statusMessage" class="status-message"></div>
+
+            <div class="download-section" id="downloadSection">
+                <h3>Download Files</h3>
+                <div id="downloadList"></div>
+                <div class="download-all-row" id="downloadAllRow" style="display:none;">
+                    <button class="btn btn-primary" id="downloadAllBtn">Download All as Zip</button>
+                </div>
+            </div>
 
             <div class="metadata-tabs">
                 <button class="tab-btn active" data-tab="exif">EXIF <span class="tab-badge">5</span></button>
@@ -811,9 +826,13 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             document.getElementById('contextUrl').value = ''; document.getElementById('pdfInput').value = ''; document.getElementById('pdfFileName').textContent = 'No file selected'; document.getElementById('contextBadge').style.display = 'none';
             document.getElementById('contextBody').classList.remove('open'); document.getElementById('contextToggle').innerHTML = '&#9660;';
             ['social', 'featured'].forEach(t => { document.getElementById(t+'Preview').style.display = 'none'; document.getElementById(t+'Placeholder').style.display = 'block'; document.getElementById(t+'RemoveBtn').style.display = 'none'; document.getElementById(t+'UploadZone').classList.remove('has-file'); document.getElementById(t+'Input').value = ''; });
+            document.getElementById('downloadSection').style.display = 'none'; currentDownloadFiles = [];
         });
 
         document.getElementById('resetBtn').addEventListener('click', () => { if (originalMetadata) { populateFields(originalMetadata); showStatus('Fields reset to AI-generated values', 'success'); } });
+
+        let currentDownloadFiles = [];
+        let currentZipName = '';
 
         document.getElementById('saveDownloadBtn').addEventListener('click', async () => {
             if (!currentFileId) return;
@@ -827,17 +846,46 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.detail || 'Save failed');
 
-                const mimeType = data.is_zip ? 'application/zip' : 'application/octet-stream';
-                const link = document.createElement('a');
-                link.href = 'data:' + mimeType + ';base64,' + data.image_data;
-                link.download = data.filename;
-                link.click();
-                showStatus(data.is_zip ? data.variant_count + ' variants downloaded as zip!' : 'Metadata saved! Download started.', 'success');
+                currentDownloadFiles = data.files;
+                currentZipName = data.zip_name;
+                const list = document.getElementById('downloadList');
+                list.innerHTML = '';
+                data.files.forEach((file, i) => {
+                    const item = document.createElement('div');
+                    item.className = 'download-item';
+                    const typeLabel = file.variant ? file.variant.charAt(0).toUpperCase() + file.variant.slice(1) : '';
+                    item.innerHTML = '<span class="download-item-name">' + file.filename + '</span>' +
+                        '<span class="download-item-type">' + typeLabel + '</span>' +
+                        '<button class="btn btn-secondary btn-small" onclick="downloadSingleFile(' + i + ')">Download</button>';
+                    list.appendChild(item);
+                });
+                document.getElementById('downloadSection').style.display = 'block';
+                document.getElementById('downloadAllRow').style.display = data.files.length > 1 ? 'block' : 'none';
+                showStatus('Metadata saved! ' + data.files.length + ' file(s) ready for download.', 'success');
             } catch (error) {
                 showStatus('Error: ' + error.message, 'error');
             } finally {
                 savingOverlay.classList.remove('active');
             }
+        });
+
+        function downloadSingleFile(index) {
+            const file = currentDownloadFiles[index];
+            const link = document.createElement('a');
+            link.href = 'data:application/octet-stream;base64,' + file.image_data;
+            link.download = file.filename;
+            link.click();
+        }
+
+        document.getElementById('downloadAllBtn').addEventListener('click', async () => {
+            const zip = new JSZip();
+            currentDownloadFiles.forEach(file => { zip.file(file.filename, file.image_data, {base64: true}); });
+            const blob = await zip.generateAsync({type: 'blob'});
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = currentZipName;
+            link.click();
+            URL.revokeObjectURL(link.href);
         });
 
         function handleFile(file) {
@@ -1051,29 +1099,17 @@ async def save_metadata(request: SaveMetadataRequest):
             dl_filename = generate_download_filename(variant_fn, variant_name, date_str)
             processed_files.append((dl_filename, final_data))
 
-        if len(processed_files) == 1:
-            name, data = processed_files[0]
-            return JSONResponse({
-                "success": True,
-                "filename": name,
-                "image_data": base64.b64encode(data).decode('utf-8'),
-                "is_zip": False,
-                "variant_count": 1
-            })
-        else:
-            zip_buffer = BytesIO()
-            with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
-                for name, data in processed_files:
-                    zf.writestr(name, data)
-            cleaned_stem = re.sub(r'[^a-z0-9]+', '-', Path(content_filename).stem.lower()).strip('-')
-            zip_name = f"{date_str}-{cleaned_stem}-images.zip"
-            return JSONResponse({
-                "success": True,
-                "filename": zip_name,
-                "image_data": base64.b64encode(zip_buffer.getvalue()).decode('utf-8'),
-                "is_zip": True,
-                "variant_count": len(processed_files)
-            })
+        cleaned_stem = re.sub(r'[^a-z0-9]+', '-', Path(content_filename).stem.lower()).strip('-')
+        zip_name = f"{date_str}-{cleaned_stem}-images.zip"
+
+        return JSONResponse({
+            "success": True,
+            "files": [
+                {"filename": name, "image_data": base64.b64encode(data).decode('utf-8'), "variant": variant_name}
+                for (name, data), (variant_name, _, _) in zip(processed_files, variants_to_process)
+            ],
+            "zip_name": zip_name
+        })
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error saving metadata: {str(e)}")
