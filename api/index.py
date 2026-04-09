@@ -562,12 +562,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         </div>
 
         <div class="variant-select-section" id="variantSelectSection">
-            <div class="variant-select-header" id="variantSelectHeader">
-                <span>Or upload a specific variant</span>
-                <span id="variantSelectToggle">&#9660;</span>
-            </div>
-            <div class="variant-select-body" id="variantSelectBody">
-                <div class="variant-select-grid">
+            <p style="color:#94a3b8;text-align:center;margin-bottom:12px;font-size:0.95rem;">Or upload a specific variant</p>
+            <div class="variant-select-grid">
                     <div class="variant-select-card" data-variant="social">
                         <span class="vs-name">Social</span><span class="vs-size">1200 x 720</span>
                         <input type="file" accept="image/*" style="display:none">
@@ -581,7 +577,6 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         <input type="file" accept="image/*" style="display:none">
                     </div>
                 </div>
-            </div>
         </div>
 
         <div class="preview-section" id="previewSection">
@@ -777,14 +772,6 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const hasPdf = document.getElementById('pdfInput').files.length > 0;
             document.getElementById('contextBadge').style.display = (hasUrl || hasPdf) ? 'inline-block' : 'none';
         }
-
-        // Variant select section toggle
-        document.getElementById('variantSelectHeader').addEventListener('click', () => {
-            const body = document.getElementById('variantSelectBody');
-            const toggle = document.getElementById('variantSelectToggle');
-            body.classList.toggle('open');
-            toggle.innerHTML = body.classList.contains('open') ? '&#9650;' : '&#9660;';
-        });
 
         // Variant select cards (single variant upload)
         document.querySelectorAll('.variant-select-card').forEach(card => {
