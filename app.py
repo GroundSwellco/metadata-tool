@@ -180,6 +180,7 @@ VARIANT_DIMENSIONS = {
     "content": None,
     "social": (1200, 720),
     "featured": (700, 400),
+    "thumbnail": (232, 245),
 }
 
 
@@ -203,8 +204,9 @@ def generate_download_filename(original_filename: str, variant_type: str, date_s
     ext = Path(original_filename).suffix.lower()
     cleaned = re.sub(r'[^a-z0-9]+', '-', stem.lower()).strip('-')
     if not date_str:
-        date_str = datetime.now().strftime('%Y-%m-%d')
-    return f"{date_str}-{cleaned}-{variant_type}-w{ext}"
+        date_str = datetime.now().strftime('%Y.%m.%d')
+    date_dotted = date_str.replace('-', '.')
+    return f"{date_dotted}-{cleaned}-{variant_type}-w{ext}"
 
 
 class SaveMetadataRequest(BaseModel):
@@ -528,6 +530,7 @@ async def upload_image(
     file: UploadFile = File(...),
     social_file: Optional[UploadFile] = File(None),
     featured_file: Optional[UploadFile] = File(None),
+    thumbnail_file: Optional[UploadFile] = File(None),
     context_url: Optional[str] = Form(None),
     context_file: Optional[UploadFile] = File(None),
 ):
@@ -561,6 +564,12 @@ async def upload_image(
         featured_path = UPLOAD_DIR / f"{file_id}_featured{featured_ext}"
         with open(featured_path, "wb") as f:
             f.write(await featured_file.read())
+
+    if thumbnail_file and thumbnail_file.filename and thumbnail_file.size and thumbnail_file.size > 0:
+        thumbnail_ext = Path(thumbnail_file.filename).suffix or ext
+        thumbnail_path = UPLOAD_DIR / f"{file_id}_thumbnail{thumbnail_ext}"
+        with open(thumbnail_path, "wb") as f:
+            f.write(await thumbnail_file.read())
 
     # Get reference context if provided
     reference_context = ""
@@ -629,6 +638,10 @@ async def save_metadata(request: SaveMetadataRequest):
     if featured_files:
         variants_to_process.append(("featured", featured_files[0], featured_files[0].suffix))
 
+    thumbnail_files = list(UPLOAD_DIR.glob(f"{file_id}_thumbnail.*"))
+    if thumbnail_files:
+        variants_to_process.append(("thumbnail", thumbnail_files[0], thumbnail_files[0].suffix))
+
     processed_files = []
     for variant_name, src_path, ext in variants_to_process:
         with open(src_path, 'rb') as f:
@@ -650,7 +663,7 @@ async def save_metadata(request: SaveMetadataRequest):
         processed_files.append(dl_filename)
 
     cleaned_stem = re.sub(r'[^a-z0-9]+', '-', Path(upload_path.name).stem.lower()).strip('-')
-    zip_name = f"{date_str}-{cleaned_stem}-images.zip"
+    zip_name = f"{date_str.replace('-', '.')}-{cleaned_stem}-images.zip"
 
     return JSONResponse({
         "success": True,

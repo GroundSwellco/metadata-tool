@@ -175,6 +175,7 @@ VARIANT_DIMENSIONS = {
     "content": None,
     "social": (1200, 720),
     "featured": (700, 400),
+    "thumbnail": (232, 245),
 }
 
 
@@ -198,8 +199,9 @@ def generate_download_filename(original_filename: str, variant_type: str, date_s
     ext = Path(original_filename).suffix.lower()
     cleaned = re.sub(r'[^a-z0-9]+', '-', stem.lower()).strip('-')
     if not date_str:
-        date_str = datetime.now().strftime('%Y-%m-%d')
-    return f"{date_str}-{cleaned}-{variant_type}-w{ext}"
+        date_str = datetime.now().strftime('%Y.%m.%d')
+    date_dotted = date_str.replace('-', '.')
+    return f"{date_dotted}-{cleaned}-{variant_type}-w{ext}"
 
 
 class SaveMetadataRequest(BaseModel):
@@ -579,6 +581,15 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                         </div>
                         <button class="btn btn-secondary variant-remove-btn" id="featuredRemoveBtn" style="display:none">Remove</button>
                     </div>
+                    <div class="variant-upload-card">
+                        <div class="variant-upload-header"><span>Thumbnail</span><span class="variant-size">232 x 245</span></div>
+                        <div class="variant-upload-zone" id="thumbnailUploadZone">
+                            <img id="thumbnailPreview" src="" alt="" style="display:none">
+                            <p id="thumbnailPlaceholder">Click or drop image</p>
+                            <input type="file" id="thumbnailInput" accept="image/*" style="display:none">
+                        </div>
+                        <button class="btn btn-secondary variant-remove-btn" id="thumbnailRemoveBtn" style="display:none">Remove</button>
+                    </div>
                 </div>
             </div>
 
@@ -706,6 +717,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         let selectedFile = null;
         let selectedSocialFile = null;
         let selectedFeaturedFile = null;
+        let selectedThumbnailFile = null;
 
         // Context Reference toggle
         document.getElementById('contextHeader').addEventListener('click', () => {
@@ -746,14 +758,14 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
             removeBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                if (type === 'social') selectedSocialFile = null; else selectedFeaturedFile = null;
+                if (type === 'social') selectedSocialFile = null; else if (type === 'featured') selectedFeaturedFile = null; else selectedThumbnailFile = null;
                 preview.style.display = 'none'; placeholder.style.display = 'block'; removeBtn.style.display = 'none';
                 zone.classList.remove('has-file'); input.value = '';
             });
         }
         function loadVariant(file, type) {
             if (!file.type.startsWith('image/')) return;
-            if (type === 'social') selectedSocialFile = file; else selectedFeaturedFile = file;
+            if (type === 'social') selectedSocialFile = file; else if (type === 'featured') selectedFeaturedFile = file; else selectedThumbnailFile = file;
             const reader = new FileReader();
             const preview = document.getElementById(type + 'Preview');
             const placeholder = document.getElementById(type + 'Placeholder');
@@ -764,6 +776,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         }
         setupVariantUpload('social');
         setupVariantUpload('featured');
+        setupVariantUpload('thumbnail');
 
         // Change Image button
         document.getElementById('changeImageBtn').addEventListener('click', () => {
@@ -784,6 +797,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             formData.append('file', selectedFile);
             if (selectedSocialFile) formData.append('social_file', selectedSocialFile);
             if (selectedFeaturedFile) formData.append('featured_file', selectedFeaturedFile);
+            if (selectedThumbnailFile) formData.append('thumbnail_file', selectedThumbnailFile);
             const contextUrl = document.getElementById('contextUrl').value.trim();
             if (contextUrl) formData.append('context_url', contextUrl);
             const pdfInput = document.getElementById('pdfInput');
@@ -822,10 +836,10 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         fileInput.addEventListener('change', e => { if (e.target.files.length) handleFile(e.target.files[0]); });
 
         document.getElementById('newUploadBtn').addEventListener('click', () => {
-            results.style.display = 'none'; document.getElementById('previewSection').style.display = 'none'; uploadSection.style.display = 'block'; fileInput.value = ''; selectedFile = null; selectedSocialFile = null; selectedFeaturedFile = null; currentFileId = null; originalMetadata = null; statusMessage.className = 'status-message';
+            results.style.display = 'none'; document.getElementById('previewSection').style.display = 'none'; uploadSection.style.display = 'block'; fileInput.value = ''; selectedFile = null; selectedSocialFile = null; selectedFeaturedFile = null; selectedThumbnailFile = null; currentFileId = null; originalMetadata = null; statusMessage.className = 'status-message';
             document.getElementById('contextUrl').value = ''; document.getElementById('pdfInput').value = ''; document.getElementById('pdfFileName').textContent = 'No file selected'; document.getElementById('contextBadge').style.display = 'none';
             document.getElementById('contextBody').classList.remove('open'); document.getElementById('contextToggle').innerHTML = '&#9660;';
-            ['social', 'featured'].forEach(t => { document.getElementById(t+'Preview').style.display = 'none'; document.getElementById(t+'Placeholder').style.display = 'block'; document.getElementById(t+'RemoveBtn').style.display = 'none'; document.getElementById(t+'UploadZone').classList.remove('has-file'); document.getElementById(t+'Input').value = ''; });
+            ['social', 'featured', 'thumbnail'].forEach(t => { document.getElementById(t+'Preview').style.display = 'none'; document.getElementById(t+'Placeholder').style.display = 'block'; document.getElementById(t+'RemoveBtn').style.display = 'none'; document.getElementById(t+'UploadZone').classList.remove('has-file'); document.getElementById(t+'Input').value = ''; });
             document.getElementById('downloadSection').style.display = 'none'; currentDownloadFiles = [];
         });
 
@@ -985,6 +999,7 @@ async def upload_image(
     file: UploadFile = File(...),
     social_file: Optional[UploadFile] = File(None),
     featured_file: Optional[UploadFile] = File(None),
+    thumbnail_file: Optional[UploadFile] = File(None),
     context_url: Optional[str] = Form(None),
     context_file: Optional[UploadFile] = File(None),
 ):
@@ -1012,6 +1027,12 @@ async def upload_image(
         featured_data = await featured_file.read()
         featured_filename = featured_file.filename
 
+    thumbnail_data = None
+    thumbnail_filename = None
+    if thumbnail_file and thumbnail_file.filename and thumbnail_file.size and thumbnail_file.size > 0:
+        thumbnail_data = await thumbnail_file.read()
+        thumbnail_filename = thumbnail_file.filename
+
     # Get reference context if provided
     reference_context = ""
     if context_url and context_url.strip():
@@ -1028,6 +1049,8 @@ async def upload_image(
         "social_filename": social_filename,
         "featured_data": featured_data,
         "featured_filename": featured_filename,
+        "thumbnail_data": thumbnail_data,
+        "thumbnail_filename": thumbnail_filename,
     }
 
     try:
@@ -1083,6 +1106,8 @@ async def save_metadata(request: SaveMetadataRequest):
             variants_to_process.append(("social", stored["social_data"], Path(stored["social_filename"]).suffix))
         if stored.get("featured_data"):
             variants_to_process.append(("featured", stored["featured_data"], Path(stored["featured_filename"]).suffix))
+        if stored.get("thumbnail_data"):
+            variants_to_process.append(("thumbnail", stored["thumbnail_data"], Path(stored["thumbnail_filename"]).suffix))
 
         processed_files = []
         for variant_name, img_data, ext in variants_to_process:
@@ -1100,7 +1125,7 @@ async def save_metadata(request: SaveMetadataRequest):
             processed_files.append((dl_filename, final_data))
 
         cleaned_stem = re.sub(r'[^a-z0-9]+', '-', Path(content_filename).stem.lower()).strip('-')
-        zip_name = f"{date_str}-{cleaned_stem}-images.zip"
+        zip_name = f"{date_str.replace('-', '.')}-{cleaned_stem}-images.zip"
 
         return JSONResponse({
             "success": True,
