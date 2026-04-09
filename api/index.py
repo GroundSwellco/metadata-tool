@@ -523,6 +523,16 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .download-item-name { color: #e2e8f0; font-size: 0.9rem; word-break: break-all; margin-right: 12px; }
         .download-item-type { color: #64748b; font-size: 0.75rem; text-transform: uppercase; margin-right: auto; padding-left: 8px; }
         .download-all-row { margin-top: 16px; text-align: center; }
+        .variant-select-section { margin-top: 16px; }
+        .variant-select-header { cursor: pointer; color: #94a3b8; display: flex; justify-content: center; gap: 8px; align-items: center; padding: 12px; transition: color 0.3s; font-size: 0.95rem; }
+        .variant-select-header:hover { color: #00d4ff; }
+        .variant-select-body { display: none; padding-top: 12px; }
+        .variant-select-body.open { display: block; }
+        .variant-select-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        .variant-select-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 16px; text-align: center; cursor: pointer; transition: all 0.3s; }
+        .variant-select-card:hover { border-color: #00d4ff; background: rgba(0,212,255,0.05); }
+        .variant-select-card .vs-name { display: block; color: #e2e8f0; font-weight: 500; margin-bottom: 4px; }
+        .variant-select-card .vs-size { display: block; color: #64748b; font-size: 0.8rem; }
         .context-section { margin-top: 20px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; overflow: hidden; }
         .context-header { padding: 16px 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; color: #94a3b8; transition: color 0.3s; user-select: none; }
         .context-header:hover { color: #00d4ff; }
@@ -551,11 +561,34 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             <input type="file" id="fileInput" accept="image/*">
         </div>
 
+        <div class="variant-select-section" id="variantSelectSection">
+            <div class="variant-select-header" id="variantSelectHeader">
+                <span>Or upload a specific variant</span>
+                <span id="variantSelectToggle">&#9660;</span>
+            </div>
+            <div class="variant-select-body" id="variantSelectBody">
+                <div class="variant-select-grid">
+                    <div class="variant-select-card" data-variant="social">
+                        <span class="vs-name">Social</span><span class="vs-size">1200 x 720</span>
+                        <input type="file" accept="image/*" style="display:none">
+                    </div>
+                    <div class="variant-select-card" data-variant="featured">
+                        <span class="vs-name">Featured</span><span class="vs-size">700 x 400</span>
+                        <input type="file" accept="image/*" style="display:none">
+                    </div>
+                    <div class="variant-select-card" data-variant="thumbnail">
+                        <span class="vs-name">Thumbnail</span><span class="vs-size">232 x 245</span>
+                        <input type="file" accept="image/*" style="display:none">
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="preview-section" id="previewSection">
             <div class="preview-card">
                 <img id="imagePreview" src="" alt="Preview">
                 <p class="preview-filename" id="previewFilename"></p>
-                <span style="color:#64748b;font-size:0.8rem;">Content (full size)</span>
+                <span style="color:#64748b;font-size:0.8rem;" id="previewVariantLabel">Content (full size)</span>
                 <div style="margin-top:12px;"><button class="btn btn-secondary btn-small" type="button" id="changeImageBtn">Change Image</button></div>
             </div>
 
@@ -718,6 +751,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         let selectedSocialFile = null;
         let selectedFeaturedFile = null;
         let selectedThumbnailFile = null;
+        let uploadMode = 'full';
+        let singleVariantType = null;
+        const variantLabels = { content: 'Content (full size)', social: 'Social (1200 x 720)', featured: 'Featured (700 x 400)', thumbnail: 'Thumbnail (232 x 245)' };
 
         // Context Reference toggle
         document.getElementById('contextHeader').addEventListener('click', () => {
@@ -741,6 +777,24 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const hasPdf = document.getElementById('pdfInput').files.length > 0;
             document.getElementById('contextBadge').style.display = (hasUrl || hasPdf) ? 'inline-block' : 'none';
         }
+
+        // Variant select section toggle
+        document.getElementById('variantSelectHeader').addEventListener('click', () => {
+            const body = document.getElementById('variantSelectBody');
+            const toggle = document.getElementById('variantSelectToggle');
+            body.classList.toggle('open');
+            toggle.innerHTML = body.classList.contains('open') ? '&#9650;' : '&#9660;';
+        });
+
+        // Variant select cards (single variant upload)
+        document.querySelectorAll('.variant-select-card').forEach(card => {
+            const variant = card.dataset.variant;
+            const input = card.querySelector('input[type="file"]');
+            card.addEventListener('click', () => input.click());
+            input.addEventListener('change', (e) => {
+                if (e.target.files.length) { uploadMode = 'single'; singleVariantType = variant; handleFile(e.target.files[0]); }
+            });
+        });
 
         // Variant image uploads (social & featured)
         function setupVariantUpload(type) {
@@ -780,9 +834,10 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
         // Change Image button
         document.getElementById('changeImageBtn').addEventListener('click', () => {
-            selectedFile = null;
+            selectedFile = null; uploadMode = 'full'; singleVariantType = null;
             document.getElementById('previewSection').style.display = 'none';
             uploadSection.style.display = 'block';
+            document.getElementById('variantSelectSection').style.display = 'block';
             fileInput.value = '';
         });
 
@@ -795,9 +850,13 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
             const formData = new FormData();
             formData.append('file', selectedFile);
-            if (selectedSocialFile) formData.append('social_file', selectedSocialFile);
-            if (selectedFeaturedFile) formData.append('featured_file', selectedFeaturedFile);
-            if (selectedThumbnailFile) formData.append('thumbnail_file', selectedThumbnailFile);
+            if (uploadMode === 'single' && singleVariantType) {
+                formData.append('variant_type', singleVariantType);
+            } else {
+                if (selectedSocialFile) formData.append('social_file', selectedSocialFile);
+                if (selectedFeaturedFile) formData.append('featured_file', selectedFeaturedFile);
+                if (selectedThumbnailFile) formData.append('thumbnail_file', selectedThumbnailFile);
+            }
             const contextUrl = document.getElementById('contextUrl').value.trim();
             if (contextUrl) formData.append('context_url', contextUrl);
             const pdfInput = document.getElementById('pdfInput');
@@ -829,14 +888,14 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             });
         });
 
-        uploadSection.addEventListener('click', () => fileInput.click());
+        uploadSection.addEventListener('click', () => { uploadMode = 'full'; singleVariantType = null; fileInput.click(); });
         uploadSection.addEventListener('dragover', e => { e.preventDefault(); uploadSection.style.borderColor = '#00d4ff'; });
         uploadSection.addEventListener('dragleave', () => { uploadSection.style.borderColor = 'rgba(255,255,255,0.2)'; });
-        uploadSection.addEventListener('drop', e => { e.preventDefault(); uploadSection.style.borderColor = 'rgba(255,255,255,0.2)'; if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]); });
-        fileInput.addEventListener('change', e => { if (e.target.files.length) handleFile(e.target.files[0]); });
+        uploadSection.addEventListener('drop', e => { e.preventDefault(); uploadSection.style.borderColor = 'rgba(255,255,255,0.2)'; uploadMode = 'full'; singleVariantType = null; if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]); });
+        fileInput.addEventListener('change', e => { if (e.target.files.length) { if (uploadMode !== 'single') { uploadMode = 'full'; singleVariantType = null; } handleFile(e.target.files[0]); } });
 
         document.getElementById('newUploadBtn').addEventListener('click', () => {
-            results.style.display = 'none'; document.getElementById('previewSection').style.display = 'none'; uploadSection.style.display = 'block'; fileInput.value = ''; selectedFile = null; selectedSocialFile = null; selectedFeaturedFile = null; selectedThumbnailFile = null; currentFileId = null; originalMetadata = null; statusMessage.className = 'status-message';
+            results.style.display = 'none'; document.getElementById('previewSection').style.display = 'none'; uploadSection.style.display = 'block'; document.getElementById('variantSelectSection').style.display = 'block'; fileInput.value = ''; selectedFile = null; selectedSocialFile = null; selectedFeaturedFile = null; selectedThumbnailFile = null; currentFileId = null; originalMetadata = null; statusMessage.className = 'status-message'; uploadMode = 'full'; singleVariantType = null;
             document.getElementById('contextUrl').value = ''; document.getElementById('pdfInput').value = ''; document.getElementById('pdfFileName').textContent = 'No file selected'; document.getElementById('contextBadge').style.display = 'none';
             document.getElementById('contextBody').classList.remove('open'); document.getElementById('contextToggle').innerHTML = '&#9660;';
             ['social', 'featured', 'thumbnail'].forEach(t => { document.getElementById(t+'Preview').style.display = 'none'; document.getElementById(t+'Placeholder').style.display = 'block'; document.getElementById(t+'RemoveBtn').style.display = 'none'; document.getElementById(t+'UploadZone').classList.remove('has-file'); document.getElementById(t+'Input').value = ''; });
@@ -910,6 +969,15 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             reader.readAsDataURL(file);
             document.getElementById('previewFilename').textContent = file.name;
             uploadSection.style.display = 'none';
+            document.getElementById('variantSelectSection').style.display = 'none';
+
+            if (uploadMode === 'single') {
+                document.getElementById('previewVariantLabel').textContent = variantLabels[singleVariantType] || singleVariantType;
+                document.querySelector('.variant-uploads-section').style.display = 'none';
+            } else {
+                document.getElementById('previewVariantLabel').textContent = variantLabels['content'];
+                document.querySelector('.variant-uploads-section').style.display = '';
+            }
             document.getElementById('previewSection').style.display = 'block';
         }
 
@@ -1000,6 +1068,7 @@ async def upload_image(
     social_file: Optional[UploadFile] = File(None),
     featured_file: Optional[UploadFile] = File(None),
     thumbnail_file: Optional[UploadFile] = File(None),
+    variant_type: Optional[str] = Form(None),
     context_url: Optional[str] = Form(None),
     context_file: Optional[UploadFile] = File(None),
 ):
@@ -1051,6 +1120,7 @@ async def upload_image(
         "featured_filename": featured_filename,
         "thumbnail_data": thumbnail_data,
         "thumbnail_filename": thumbnail_filename,
+        "variant_type": variant_type or "content",
     }
 
     try:
@@ -1100,14 +1170,21 @@ async def save_metadata(request: SaveMetadataRequest):
 
     try:
         # Build list of variants to process: (variant_name, image_bytes, file_ext)
-        variants_to_process = [("content", content_data, Path(content_filename).suffix)]
+        vtype = stored.get("variant_type", "content")
+        has_extra_variants = stored.get("social_data") or stored.get("featured_data") or stored.get("thumbnail_data")
 
-        if stored.get("social_data"):
-            variants_to_process.append(("social", stored["social_data"], Path(stored["social_filename"]).suffix))
-        if stored.get("featured_data"):
-            variants_to_process.append(("featured", stored["featured_data"], Path(stored["featured_filename"]).suffix))
-        if stored.get("thumbnail_data"):
-            variants_to_process.append(("thumbnail", stored["thumbnail_data"], Path(stored["thumbnail_filename"]).suffix))
+        if has_extra_variants or vtype == "content":
+            # Full mode: content + any extra variants
+            variants_to_process = [("content", content_data, Path(content_filename).suffix)]
+            if stored.get("social_data"):
+                variants_to_process.append(("social", stored["social_data"], Path(stored["social_filename"]).suffix))
+            if stored.get("featured_data"):
+                variants_to_process.append(("featured", stored["featured_data"], Path(stored["featured_filename"]).suffix))
+            if stored.get("thumbnail_data"):
+                variants_to_process.append(("thumbnail", stored["thumbnail_data"], Path(stored["thumbnail_filename"]).suffix))
+        else:
+            # Single variant mode: just the selected variant type
+            variants_to_process = [(vtype, content_data, Path(content_filename).suffix)]
 
         processed_files = []
         for variant_name, img_data, ext in variants_to_process:

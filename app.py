@@ -531,6 +531,7 @@ async def upload_image(
     social_file: Optional[UploadFile] = File(None),
     featured_file: Optional[UploadFile] = File(None),
     thumbnail_file: Optional[UploadFile] = File(None),
+    variant_type: Optional[str] = Form(None),
     context_url: Optional[str] = Form(None),
     context_file: Optional[UploadFile] = File(None),
 ):
@@ -570,6 +571,11 @@ async def upload_image(
         thumbnail_path = UPLOAD_DIR / f"{file_id}_thumbnail{thumbnail_ext}"
         with open(thumbnail_path, "wb") as f:
             f.write(await thumbnail_file.read())
+
+    # Store variant type for single-variant mode
+    if variant_type and variant_type != "content":
+        with open(UPLOAD_DIR / f"{file_id}_varianttype.txt", "w") as f:
+            f.write(variant_type)
 
     # Get reference context if provided
     reference_context = ""
@@ -627,20 +633,29 @@ async def save_metadata(request: SaveMetadataRequest):
     content_ext = upload_path.suffix
     date_str = metadata.get('exif_create_date', datetime.now().strftime('%Y-%m-%d'))
 
-    # Build list of variants: (variant_name, source_path, file_ext)
-    variants_to_process = [("content", upload_path, content_ext)]
+    # Check for single variant mode
+    vtype = "content"
+    vtype_file = UPLOAD_DIR / f"{file_id}_varianttype.txt"
+    if vtype_file.exists():
+        vtype = vtype_file.read_text().strip()
 
     social_files = list(UPLOAD_DIR.glob(f"{file_id}_social.*"))
-    if social_files:
-        variants_to_process.append(("social", social_files[0], social_files[0].suffix))
-
     featured_files = list(UPLOAD_DIR.glob(f"{file_id}_featured.*"))
-    if featured_files:
-        variants_to_process.append(("featured", featured_files[0], featured_files[0].suffix))
-
     thumbnail_files = list(UPLOAD_DIR.glob(f"{file_id}_thumbnail.*"))
-    if thumbnail_files:
-        variants_to_process.append(("thumbnail", thumbnail_files[0], thumbnail_files[0].suffix))
+    has_extra_variants = social_files or featured_files or thumbnail_files
+
+    if has_extra_variants or vtype == "content":
+        # Full mode: content + any extra variants
+        variants_to_process = [("content", upload_path, content_ext)]
+        if social_files:
+            variants_to_process.append(("social", social_files[0], social_files[0].suffix))
+        if featured_files:
+            variants_to_process.append(("featured", featured_files[0], featured_files[0].suffix))
+        if thumbnail_files:
+            variants_to_process.append(("thumbnail", thumbnail_files[0], thumbnail_files[0].suffix))
+    else:
+        # Single variant mode
+        variants_to_process = [(vtype, upload_path, content_ext)]
 
     processed_files = []
     for variant_name, src_path, ext in variants_to_process:
