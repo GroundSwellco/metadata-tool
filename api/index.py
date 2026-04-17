@@ -544,15 +544,62 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .pdf-upload { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
         .btn-small { padding: 8px 16px; font-size: 0.85rem; }
         .context-badge { display: inline-block; background: rgba(34,197,94,0.2); color: #86efac; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; margin-left: 8px; display: none; }
+        .hero { text-align: center; padding: 60px 0 30px; }
+        .hero .logo { font-size: 1.4rem; margin-bottom: 20px; }
+        .hero h1 { font-size: 3rem; font-weight: 800; line-height: 1.15; margin-bottom: 20px; background: linear-gradient(90deg, #00d4ff, #7c3aed); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .hero-lead { font-size: 1.2rem; color: #94a3b8; max-width: 720px; margin: 0 auto 24px; line-height: 1.5; }
+        .hero-pills { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 24px; }
+        .hero-pill { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 999px; padding: 8px 16px; font-size: 0.9rem; color: #cbd5e1; }
+        .marketing { margin-top: 80px; }
+        .marketing-section { margin-bottom: 80px; }
+        .marketing-section h2 { font-size: 2rem; text-align: center; margin-bottom: 12px; background: linear-gradient(90deg, #00d4ff, #7c3aed); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .section-lead { text-align: center; color: #94a3b8; max-width: 640px; margin: 0 auto 40px; font-size: 1.05rem; line-height: 1.5; }
+        .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+        .step-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 32px 28px; transition: transform 0.2s ease, border-color 0.2s ease; }
+        .step-card:hover { transform: translateY(-4px); border-color: rgba(0,212,255,0.4); }
+        .step-number { font-size: 0.8rem; font-weight: 700; color: #00d4ff; letter-spacing: 2px; margin-bottom: 12px; }
+        .step-card h3 { font-size: 1.3rem; margin-bottom: 10px; }
+        .step-card p { color: #94a3b8; line-height: 1.6; font-size: 0.95rem; }
+        .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        .feature-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 24px; transition: transform 0.2s ease, border-color 0.2s ease; }
+        .feature-card:hover { transform: translateY(-3px); border-color: rgba(124,58,237,0.4); }
+        .feature-icon { font-size: 1.8rem; margin-bottom: 12px; }
+        .feature-card h4 { font-size: 1.1rem; margin-bottom: 8px; }
+        .feature-card p { color: #94a3b8; font-size: 0.9rem; line-height: 1.5; }
+        .brand-defaults { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 32px 40px; }
+        .defaults-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 48px; }
+        .default-row { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+        .default-key { color: #94a3b8; font-size: 0.9rem; }
+        .default-value { color: #fff; font-weight: 500; font-size: 0.95rem; text-align: right; }
+        .cta-band { background: linear-gradient(135deg, rgba(0,212,255,0.08), rgba(124,58,237,0.08)); border: 1px solid rgba(0,212,255,0.2); border-radius: 20px; padding: 48px 40px; text-align: center; }
+        .cta-band h2 { font-size: 1.8rem; margin-bottom: 12px; -webkit-text-fill-color: #fff; background: none; color: #fff; }
+        .cta-band p { color: #94a3b8; margin-bottom: 24px; }
+        .brand-footer { margin-top: 80px; padding: 40px 0 20px; border-top: 1px solid rgba(255,255,255,0.08); }
+        .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 40px; margin-bottom: 24px; }
+        .footer-brand .logo-small { font-size: 1.4rem; font-weight: 700; background: linear-gradient(90deg, #00d4ff, #7c3aed); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 10px; }
+        .footer-brand p { color: #94a3b8; font-size: 0.9rem; line-height: 1.5; max-width: 340px; }
+        .footer-col h5 { color: #cbd5e1; margin-bottom: 12px; font-size: 0.95rem; }
+        .footer-col a { color: #94a3b8; text-decoration: none; font-size: 0.9rem; display: block; padding: 4px 0; }
+        .footer-col a:hover { color: #00d4ff; }
+        .footer-bottom { text-align: center; color: #64748b; font-size: 0.85rem; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); }
+        .footer-bottom a { color: #94a3b8; text-decoration: none; }
+        .footer-bottom a:hover { color: #00d4ff; }
+        @media (max-width: 768px) { .hero h1 { font-size: 2rem; } .steps-grid, .features-grid, .defaults-grid { grid-template-columns: 1fr; } .footer-grid { grid-template-columns: 1fr; } }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
     <div class="container">
-        <header>
+        <section class="hero">
             <div class="logo">GroundSwell℠</div>
-            <p class="subtitle">AI-Powered Image Metadata Tool</p>
-        </header>
+            <h1>AI-Powered Metadata,<br>Tailored to Your Brand</h1>
+            <p class="hero-lead">Drop an image and get publish-ready EXIF, IPTC, and XMP metadata crafted in the GroundSwell voice — in seconds, not hours.</p>
+            <div class="hero-pills">
+                <span class="hero-pill">⚡ Powered by Claude Sonnet 4</span>
+                <span class="hero-pill">🔒 Brand-safe defaults</span>
+                <span class="hero-pill">📦 Multi-variant export</span>
+            </div>
+        </section>
 
         <div class="upload-section" id="uploadSection">
             <div class="upload-icon">📷</div>
@@ -726,13 +773,78 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             <button class="new-upload-btn" id="newUploadBtn">Upload Another Image</button>
         </div>
 
-        <footer><p>Powered by Claude AI | © <span id="year"></span> <a href="https://groundswell.co">GroundSwell℠</a></p></footer>
+        <section class="marketing">
+            <div class="marketing-section">
+                <h2>How It Works</h2>
+                <p class="section-lead">From raw image to publish-ready asset in three steps.</p>
+                <div class="steps-grid">
+                    <div class="step-card"><div class="step-number">STEP 01</div><h3>Upload</h3><p>Drop your image — or a specific variant (social, featured, thumbnail). Add a URL or document for extra context.</p></div>
+                    <div class="step-card"><div class="step-number">STEP 02</div><h3>Analyze</h3><p>Claude Sonnet 4 reads the visual content and generates 28 metadata fields aligned with GroundSwell's brand language.</p></div>
+                    <div class="step-card"><div class="step-number">STEP 03</div><h3>Download</h3><p>Edit any field, then export with metadata baked into the file. Single image or a zipped bundle of every variant.</p></div>
+                </div>
+            </div>
+            <div class="marketing-section">
+                <h2>Why Teams Use It</h2>
+                <p class="section-lead">One tool, three metadata standards, and a brand voice that stays consistent across every asset.</p>
+                <div class="features-grid">
+                    <div class="feature-card"><div class="feature-icon">📝</div><h4>Three Standards, One Pass</h4><p>Writes EXIF, IPTC, and XMP simultaneously — the formats used by every major photo library, CMS, and search engine.</p></div>
+                    <div class="feature-card"><div class="feature-icon">🎯</div><h4>Brand-Aware AI</h4><p>Trained on GroundSwell concepts: Organizational Alpha, Fractal Flywheel℠, Changing Pains℠, Direct Ownership.</p></div>
+                    <div class="feature-card"><div class="feature-icon">📐</div><h4>Built-In Variants</h4><p>Content (original) · Social (1200×720) · Featured (700×400) · Thumbnail (232×245) — tagged and resized automatically.</p></div>
+                    <div class="feature-card"><div class="feature-icon">🔗</div><h4>Context Reference</h4><p>Point the AI at a URL, PDF, Word, Excel, or CSV — it reads the source to produce sharper, more accurate metadata.</p></div>
+                    <div class="feature-card"><div class="feature-icon">✏️</div><h4>Every Field Editable</h4><p>AI suggestions are a starting point, not a verdict. Tweak titles, keywords, and descriptions before export.</p></div>
+                    <div class="feature-card"><div class="feature-icon">📦</div><h4>Bulk Export</h4><p>Download a single variant or grab every variant in one zip — filenames follow the brand's naming convention automatically.</p></div>
+                </div>
+            </div>
+            <div class="marketing-section">
+                <h2>Brand Defaults, Baked In</h2>
+                <p class="section-lead">Every export ships with the GroundSwell identity already written into the file.</p>
+                <div class="brand-defaults">
+                    <div class="defaults-grid">
+                        <div class="default-row"><span class="default-key">Artist / Creator</span><span class="default-value">GroundSwell</span></div>
+                        <div class="default-row"><span class="default-key">Credit</span><span class="default-value">GroundSwell</span></div>
+                        <div class="default-row"><span class="default-key">Copyright</span><span class="default-value">Copyright <span id="copyrightYear"></span> GroundSwell</span></div>
+                        <div class="default-row"><span class="default-key">Copyright Status</span><span class="default-value">Protected</span></div>
+                        <div class="default-row"><span class="default-key">Category</span><span class="default-value">Business Ownership Platform</span></div>
+                        <div class="default-row"><span class="default-key">Contact Website</span><span class="default-value">www.groundswell.co</span></div>
+                        <div class="default-row"><span class="default-key">Contact Phone</span><span class="default-value">435-214-2997</span></div>
+                        <div class="default-row"><span class="default-key">Contact (IPTC)</span><span class="default-value">groundswell.co</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="cta-band">
+                <h2>Ready to tag your next image?</h2>
+                <p>Scroll up and drop a file. You'll have publish-ready metadata in under a minute.</p>
+                <button class="btn btn-primary" type="button" onclick="window.scrollTo({top:0,behavior:'smooth'})">Start Uploading</button>
+            </div>
+        </section>
+
+        <footer class="brand-footer">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <div class="logo-small">GroundSwell℠</div>
+                    <p>A Business Ownership Platform creating Organizational Alpha through incremental returns and decreased risks.</p>
+                </div>
+                <div class="footer-col">
+                    <h5>Product</h5>
+                    <a href="#uploadSection">Metadata Tool</a>
+                    <a href="https://groundswell.co" target="_blank" rel="noopener">GroundSwell.co</a>
+                </div>
+                <div class="footer-col">
+                    <h5>Contact</h5>
+                    <a href="https://groundswell.co" target="_blank" rel="noopener">www.groundswell.co</a>
+                    <a href="tel:4352142997">435-214-2997</a>
+                </div>
+            </div>
+            <div class="footer-bottom">Powered by Claude AI · © <span id="year"></span> <a href="https://groundswell.co" target="_blank" rel="noopener">GroundSwell℠</a> — All rights reserved</div>
+        </footer>
     </div>
 
     <div class="saving-overlay" id="savingOverlay"><div><div class="spinner"></div><p>Saving metadata...</p></div></div>
 
     <script>
         document.getElementById('year').textContent = new Date().getFullYear();
+        const copyrightYearEl = document.getElementById('copyrightYear');
+        if (copyrightYearEl) copyrightYearEl.textContent = new Date().getFullYear();
         const uploadSection = document.getElementById('uploadSection');
         const fileInput = document.getElementById('fileInput');
         const processing = document.getElementById('processing');
