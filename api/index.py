@@ -37,8 +37,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize Anthropic client
-client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+# Lazy Anthropic client so a missing API key doesn't crash cold-start.
+_client = None
+
+
+def get_client():
+    global _client
+    if _client is None:
+        api_key = os.getenv("ANTHROPIC_API_KEY")
+        if not api_key:
+            raise HTTPException(
+                status_code=500,
+                detail="ANTHROPIC_API_KEY is not configured on the server.",
+            )
+        _client = anthropic.Anthropic(api_key=api_key)
+    return _client
 
 # In-memory storage for uploaded files (temporary for serverless)
 file_storage = {}
@@ -237,7 +250,7 @@ async def analyze_image_with_claude(image_data: bytes, filename: str, reference_
     if reference_context:
         prompt += REFERENCE_CONTEXT_PROMPT.format(reference_content=reference_context)
 
-    message = client.messages.create(
+    message = get_client().messages.create(
         model="claude-sonnet-4-20250514",
         max_tokens=1024,
         messages=[
