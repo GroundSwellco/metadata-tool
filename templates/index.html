@@ -62,37 +62,32 @@
         }
 
         .upload-section {
-            background: #F16365;
-            border: 2px solid #F16365;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px dashed rgba(255, 255, 255, 0.2);
             border-radius: 16px;
             padding: 60px 40px;
             text-align: center;
             transition: all 0.3s ease;
             cursor: pointer;
-            color: #fff;
-            box-shadow: 0 6px 20px rgba(241, 99, 101, 0.35);
         }
 
         .upload-section:hover, .upload-section.dragover {
-            background: #ef4f51;
-            border-color: #FBD779;
-            box-shadow: 0 8px 24px rgba(251, 215, 121, 0.4);
+            border-color: #7FBBE6;
+            background: rgba(127, 187, 230, 0.05);
         }
 
         .upload-icon {
             font-size: 4rem;
             margin-bottom: 20px;
-            color: #fff;
         }
 
         .upload-text {
             font-size: 1.2rem;
-            color: #fff;
+            color: #94a3b8;
         }
 
         .upload-text span {
-            color: #FBD779;
-            text-decoration: underline;
+            color: #7FBBE6;
             cursor: pointer;
         }
 
@@ -157,14 +152,14 @@
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #F16365 0%, #FBD779 100%);
+            background: #F16365;
             color: #fff;
             box-shadow: 0 4px 14px rgba(241, 99, 101, 0.35);
         }
 
         .btn-primary:hover {
-            background: linear-gradient(135deg, #FBD779 0%, #F16365 100%);
-            box-shadow: 0 6px 18px rgba(251, 215, 121, 0.4);
+            background: #ef4f51;
+            box-shadow: 0 6px 18px rgba(241, 99, 101, 0.5);
         }
 
         .btn-secondary {
@@ -858,7 +853,7 @@
             <p class="upload-text">
                 Drag & drop your image here or <span>browse files</span>
             </p>
-            <p style="color: rgba(255, 255, 255, 0.85); margin-top: 10px; font-size: 0.9rem;">
+            <p style="color: #64748b; margin-top: 10px; font-size: 0.9rem;">
                 Supports JPG, PNG, GIF, WEBP
             </p>
             <input type="file" id="fileInput" accept="image/*">

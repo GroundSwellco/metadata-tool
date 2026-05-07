@@ -458,9 +458,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         header { text-align: center; margin-bottom: 40px; }
         .logo { font-size: 2.5rem; font-weight: 700; color: #fff; }
         .subtitle { color: #94a3b8; margin-top: 8px; }
-        .upload-section { background: #F16365; border: 2px solid #F16365; border-radius: 16px; padding: 60px 40px; text-align: center; cursor: pointer; transition: all 0.3s; color: #fff; box-shadow: 0 6px 20px rgba(241,99,101,0.35); }
-        .upload-section:hover { background: #ef4f51; border-color: #FBD779; box-shadow: 0 8px 24px rgba(251,215,121,0.4); }
-        .upload-section p, .upload-section .upload-icon { color: #fff; }
+        .upload-section { background: rgba(255,255,255,0.05); border: 2px dashed rgba(255,255,255,0.2); border-radius: 16px; padding: 60px 40px; text-align: center; cursor: pointer; transition: all 0.3s; }
+        .upload-section:hover { border-color: #7FBBE6; background: rgba(127,187,230,0.05); }
         .upload-icon { font-size: 4rem; margin-bottom: 20px; }
         #fileInput { display: none; }
         .processing { display: none; text-align: center; padding: 40px; }
@@ -470,8 +469,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .result-title { font-size: 1.8rem; color: #fff; }
         .btn { color: #fff; border: none; padding: 12px 24px; border-radius: 8px; font-size: 1rem; cursor: pointer; transition: all 0.2s; }
-        .btn-primary { background: linear-gradient(135deg, #F16365 0%, #FBD779 100%); color: #fff; box-shadow: 0 4px 14px rgba(241,99,101,0.35); }
-        .btn-primary:hover { background: linear-gradient(135deg, #FBD779 0%, #F16365 100%); box-shadow: 0 6px 18px rgba(251,215,121,0.4); }
+        .btn-primary { background: #F16365; color: #fff; box-shadow: 0 4px 14px rgba(241,99,101,0.35); }
+        .btn-primary:hover { background: #ef4f51; box-shadow: 0 6px 18px rgba(241,99,101,0.5); }
         .btn-secondary { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); }
         .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(127,187,230,0.3); }
         .metadata-tabs { display: flex; gap: 4px; margin-bottom: 20px; background: rgba(0,0,0,0.2); padding: 4px; border-radius: 12px; }
@@ -667,8 +666,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
         <div class="upload-section" id="uploadSection">
             <div class="upload-icon">📷</div>
-            <p>Drag & drop your image here or <span style="color:#FBD779;text-decoration:underline">browse files</span></p>
-            <p style="color:rgba(255,255,255,0.85);margin-top:10px;font-size:0.9rem">Supports JPG, PNG</p>
+            <p>Drag & drop your image here or <span style="color:#7FBBE6">browse files</span></p>
+            <p style="color:#64748b;margin-top:10px;font-size:0.9rem">Supports JPG, PNG</p>
             <input type="file" id="fileInput" accept="image/*">
         </div>
 
@@ -1139,9 +1138,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         });
 
         uploadSection.addEventListener('click', () => { uploadMode = 'full'; singleVariantType = null; fileInput.click(); });
-        uploadSection.addEventListener('dragover', e => { e.preventDefault(); uploadSection.style.borderColor = '#FBD779'; });
-        uploadSection.addEventListener('dragleave', () => { uploadSection.style.borderColor = '#F16365'; });
-        uploadSection.addEventListener('drop', e => { e.preventDefault(); uploadSection.style.borderColor = '#F16365'; uploadMode = 'full'; singleVariantType = null; if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]); });
+        uploadSection.addEventListener('dragover', e => { e.preventDefault(); uploadSection.style.borderColor = '#7FBBE6'; });
+        uploadSection.addEventListener('dragleave', () => { uploadSection.style.borderColor = 'rgba(255,255,255,0.2)'; });
+        uploadSection.addEventListener('drop', e => { e.preventDefault(); uploadSection.style.borderColor = 'rgba(255,255,255,0.2)'; uploadMode = 'full'; singleVariantType = null; if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]); });
         fileInput.addEventListener('change', e => { if (e.target.files.length) { if (uploadMode !== 'single') { uploadMode = 'full'; singleVariantType = null; } handleFile(e.target.files[0]); } });
 
         document.getElementById('newUploadBtn').addEventListener('click', () => {
