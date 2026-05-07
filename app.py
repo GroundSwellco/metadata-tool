@@ -44,6 +44,7 @@ PROCESSED_DIR.mkdir(exist_ok=True)
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 app.mount("/processed", StaticFiles(directory=str(PROCESSED_DIR)), name="processed")
+app.mount("/fonts", StaticFiles(directory=str(BASE_DIR / "api" / "fonts")), name="fonts")
 
 # Initialize Anthropic client
 client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))

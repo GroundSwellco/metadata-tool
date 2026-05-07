@@ -449,6 +449,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GroundSwell Image Metadata Tool</title>
     <style>
+        @font-face { font-family: 'NHaasGroteskTXPro'; src: url('/fonts/NHaasGroteskTXPro-65Md.ttf') format('truetype'); font-weight: 500; font-style: normal; font-display: swap; }
+        @font-face { font-family: 'NeuzeitGro-Reg'; src: url('/fonts/NeuzeitGro-Reg.ttf') format('truetype'); font-weight: 400; font-style: normal; font-display: swap; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'NeuzeitGro-Reg', 'Helvetica Neue', Helvetica, Arial, sans-serif; background: linear-gradient(135deg, #2C3B4C 0%, #1F2A36 100%); min-height: 100vh; color: #fff; }
         h1, h2, h3, h4, h5, h6, .logo, .footer-brand .logo-small, .btn, .btn-primary, .btn-secondary, .new-upload-btn { font-family: 'NHaasGroteskTXPro', 'Helvetica Neue', Helvetica, Arial, sans-serif; }
@@ -1426,6 +1428,24 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 @app.get("/", response_class=HTMLResponse)
 async def home():
     return HTML_TEMPLATE
+
+
+FONTS_DIR = Path(__file__).parent / "fonts"
+ALLOWED_FONTS = {"NHaasGroteskTXPro-65Md.ttf", "NeuzeitGro-Reg.ttf"}
+
+
+@app.get("/fonts/{filename}")
+async def serve_font(filename: str):
+    if filename not in ALLOWED_FONTS:
+        raise HTTPException(status_code=404, detail="Font not found")
+    font_path = FONTS_DIR / filename
+    if not font_path.is_file():
+        raise HTTPException(status_code=404, detail="Font not found")
+    return Response(
+        content=font_path.read_bytes(),
+        media_type="font/ttf",
+        headers={"Cache-Control": "public, max-age=31536000, immutable"},
+    )
 
 
 @app.post("/upload")
