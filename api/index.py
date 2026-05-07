@@ -456,10 +456,11 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         h1, h2, h3, h4, h5, h6, .logo, .footer-brand .logo-small, .btn, .btn-primary, .btn-secondary, .new-upload-btn { font-family: 'NHaasGroteskTXPro', 'Helvetica Neue', Helvetica, Arial, sans-serif; }
         .container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
         header { text-align: center; margin-bottom: 40px; }
-        .logo { font-size: 2.5rem; font-weight: 700; background: linear-gradient(90deg, #7FBBE6, #F16365); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .logo { font-size: 2.5rem; font-weight: 700; color: #fff; }
         .subtitle { color: #94a3b8; margin-top: 8px; }
-        .upload-section { background: rgba(255,255,255,0.05); border: 2px dashed rgba(255,255,255,0.2); border-radius: 16px; padding: 60px 40px; text-align: center; cursor: pointer; transition: all 0.3s; }
-        .upload-section:hover { border-color: #7FBBE6; background: rgba(127,187,230,0.05); }
+        .upload-section { background: #F16365; border: 2px solid #F16365; border-radius: 16px; padding: 60px 40px; text-align: center; cursor: pointer; transition: all 0.3s; color: #fff; box-shadow: 0 6px 20px rgba(241,99,101,0.35); }
+        .upload-section:hover { background: #ef4f51; border-color: #FBD779; box-shadow: 0 8px 24px rgba(251,215,121,0.4); }
+        .upload-section p, .upload-section .upload-icon { color: #fff; }
         .upload-icon { font-size: 4rem; margin-bottom: 20px; }
         #fileInput { display: none; }
         .processing { display: none; text-align: center; padding: 40px; }
@@ -467,7 +468,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         @keyframes spin { to { transform: rotate(360deg); } }
         .results { display: none; margin-top: 40px; }
         .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .result-title { font-size: 1.8rem; color: #7FBBE6; }
+        .result-title { font-size: 1.8rem; color: #fff; }
         .btn { color: #fff; border: none; padding: 12px 24px; border-radius: 8px; font-size: 1rem; cursor: pointer; transition: all 0.2s; }
         .btn-primary { background: linear-gradient(135deg, #F16365 0%, #FBD779 100%); color: #fff; box-shadow: 0 4px 14px rgba(241,99,101,0.35); }
         .btn-primary:hover { background: linear-gradient(135deg, #FBD779 0%, #F16365 100%); box-shadow: 0 6px 18px rgba(251,215,121,0.4); }
@@ -500,7 +501,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .saving-overlay.active { display: flex; }
         .button-group { display: flex; gap: 12px; }
         .panel-header { margin-bottom: 20px; }
-        .panel-header h3 { color: #F16365; font-size: 1.1rem; margin-bottom: 4px; }
+        .panel-header h3 { color: #fff; font-size: 1.1rem; margin-bottom: 4px; }
         .panel-header p { color: #64748b; font-size: 0.85rem; }
         .tab-badge { display: inline-block; background: rgba(127,187,230,0.2); color: #7FBBE6; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; margin-left: 8px; }
         .preview-section { display: none; }
@@ -509,7 +510,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .preview-filename { color: #94a3b8; font-size: 0.95rem; margin-bottom: 12px; }
         .generate-btn { display: block; width: 100%; padding: 16px; font-size: 1.1rem; margin-top: 20px; }
         .variant-uploads-section { margin-bottom: 20px; }
-        .variant-uploads-section h3 { color: #F16365; font-size: 1.1rem; margin-bottom: 4px; }
+        .variant-uploads-section h3 { color: #fff; font-size: 1.1rem; margin-bottom: 4px; }
         .variant-uploads-section > p { color: #64748b; font-size: 0.85rem; margin-bottom: 16px; }
         .variant-upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
         .variant-upload-card { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; }
@@ -522,7 +523,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .variant-upload-zone p { color: #64748b; font-size: 0.85rem; margin: 0; }
         .variant-remove-btn { margin-top: 8px; font-size: 0.8rem; padding: 4px 12px; }
         .download-section { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 20px; margin-bottom: 20px; display: none; }
-        .download-section h3 { color: #F16365; font-size: 1.1rem; margin-bottom: 16px; }
+        .download-section h3 { color: #fff; font-size: 1.1rem; margin-bottom: 16px; }
         .download-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: rgba(0,0,0,0.2); border-radius: 8px; margin-bottom: 8px; }
         .download-item-name { color: #e2e8f0; font-size: 0.9rem; word-break: break-all; margin-right: 12px; }
         .download-item-type { color: #64748b; font-size: 0.75rem; text-transform: uppercase; margin-right: auto; padding-left: 8px; }
@@ -550,13 +551,13 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .context-badge { display: inline-block; background: rgba(34,197,94,0.2); color: #86efac; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; margin-left: 8px; display: none; }
         .hero { text-align: center; padding: 60px 0 30px; }
         .hero .logo { font-size: 1.4rem; margin-bottom: 20px; }
-        .hero h1 { font-size: 3rem; font-weight: 800; line-height: 1.15; margin-bottom: 20px; background: linear-gradient(90deg, #7FBBE6, #F16365); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .hero h1 { font-size: 3rem; font-weight: 800; line-height: 1.15; margin-bottom: 20px; color: #fff; }
         .hero-lead { font-size: 1.2rem; color: #94a3b8; max-width: 720px; margin: 0 auto 24px; line-height: 1.5; }
         .hero-pills { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 24px; }
         .hero-pill { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 999px; padding: 8px 16px; font-size: 0.9rem; color: #cbd5e1; }
         .marketing { margin-top: 80px; }
         .marketing-section { margin-bottom: 80px; }
-        .marketing-section h2 { font-size: 2rem; text-align: center; margin-bottom: 12px; background: linear-gradient(90deg, #7FBBE6, #F16365); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .marketing-section h2 { font-size: 2rem; text-align: center; margin-bottom: 12px; color: #fff; }
         .section-lead { text-align: center; color: #94a3b8; max-width: 640px; margin: 0 auto 40px; font-size: 1.05rem; line-height: 1.5; }
         .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
         .step-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 32px 28px; transition: transform 0.2s ease, border-color 0.2s ease; }
@@ -580,7 +581,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .cta-band p { color: #94a3b8; margin-bottom: 24px; }
         .brand-footer { margin-top: 80px; padding: 40px 0 20px; border-top: 1px solid rgba(255,255,255,0.08); }
         .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 40px; margin-bottom: 24px; }
-        .footer-brand .logo-small { font-size: 1.4rem; font-weight: 700; background: linear-gradient(90deg, #7FBBE6, #F16365); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 10px; }
+        .footer-brand .logo-small { font-size: 1.4rem; font-weight: 700; color: #fff; margin-bottom: 10px; }
         .footer-brand p { color: #94a3b8; font-size: 0.9rem; line-height: 1.5; max-width: 340px; }
         .footer-col h5 { color: #cbd5e1; margin-bottom: 12px; font-size: 0.95rem; }
         .footer-col a { color: #94a3b8; text-decoration: none; font-size: 0.9rem; display: block; padding: 4px 0; }
@@ -666,8 +667,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
         <div class="upload-section" id="uploadSection">
             <div class="upload-icon">📷</div>
-            <p>Drag & drop your image here or <span style="color:#7FBBE6">browse files</span></p>
-            <p style="color:#64748b;margin-top:10px;font-size:0.9rem">Supports JPG, PNG</p>
+            <p>Drag & drop your image here or <span style="color:#FBD779;text-decoration:underline">browse files</span></p>
+            <p style="color:rgba(255,255,255,0.85);margin-top:10px;font-size:0.9rem">Supports JPG, PNG</p>
             <input type="file" id="fileInput" accept="image/*">
         </div>
 
@@ -1138,9 +1139,9 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         });
 
         uploadSection.addEventListener('click', () => { uploadMode = 'full'; singleVariantType = null; fileInput.click(); });
-        uploadSection.addEventListener('dragover', e => { e.preventDefault(); uploadSection.style.borderColor = '#7FBBE6'; });
-        uploadSection.addEventListener('dragleave', () => { uploadSection.style.borderColor = 'rgba(255,255,255,0.2)'; });
-        uploadSection.addEventListener('drop', e => { e.preventDefault(); uploadSection.style.borderColor = 'rgba(255,255,255,0.2)'; uploadMode = 'full'; singleVariantType = null; if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]); });
+        uploadSection.addEventListener('dragover', e => { e.preventDefault(); uploadSection.style.borderColor = '#FBD779'; });
+        uploadSection.addEventListener('dragleave', () => { uploadSection.style.borderColor = '#F16365'; });
+        uploadSection.addEventListener('drop', e => { e.preventDefault(); uploadSection.style.borderColor = '#F16365'; uploadMode = 'full'; singleVariantType = null; if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]); });
         fileInput.addEventListener('change', e => { if (e.target.files.length) { if (uploadMode !== 'single') { uploadMode = 'full'; singleVariantType = null; } handleFile(e.target.files[0]); } });
 
         document.getElementById('newUploadBtn').addEventListener('click', () => {

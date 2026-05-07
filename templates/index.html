@@ -52,10 +52,7 @@
         .logo {
             font-size: 2.5rem;
             font-weight: 700;
-            background: linear-gradient(90deg, #7FBBE6, #F16365);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: #fff;
         }
 
         .subtitle {
@@ -65,32 +62,37 @@
         }
 
         .upload-section {
-            background: rgba(255, 255, 255, 0.05);
-            border: 2px dashed rgba(255, 255, 255, 0.2);
+            background: #F16365;
+            border: 2px solid #F16365;
             border-radius: 16px;
             padding: 60px 40px;
             text-align: center;
             transition: all 0.3s ease;
             cursor: pointer;
+            color: #fff;
+            box-shadow: 0 6px 20px rgba(241, 99, 101, 0.35);
         }
 
         .upload-section:hover, .upload-section.dragover {
-            border-color: #7FBBE6;
-            background: rgba(127, 187, 230, 0.05);
+            background: #ef4f51;
+            border-color: #FBD779;
+            box-shadow: 0 8px 24px rgba(251, 215, 121, 0.4);
         }
 
         .upload-icon {
             font-size: 4rem;
             margin-bottom: 20px;
+            color: #fff;
         }
 
         .upload-text {
             font-size: 1.2rem;
-            color: #94a3b8;
+            color: #fff;
         }
 
         .upload-text span {
-            color: #7FBBE6;
+            color: #FBD779;
+            text-decoration: underline;
             cursor: pointer;
         }
 
@@ -134,7 +136,7 @@
 
         .result-title {
             font-size: 1.8rem;
-            color: #7FBBE6;
+            color: #fff;
         }
 
         .button-group {
@@ -238,7 +240,7 @@
         }
 
         .panel-header h3 {
-            color: #F16365;
+            color: #fff;
             font-size: 1.1rem;
             margin-bottom: 4px;
         }
@@ -488,7 +490,7 @@
         .variant-select-card .vs-size { display: block; color: #64748b; font-size: 0.8rem; }
 
         .variant-uploads-section { margin-bottom: 20px; }
-        .variant-uploads-section h3 { color: #F16365; font-size: 1.1rem; margin-bottom: 4px; }
+        .variant-uploads-section h3 { color: #fff; font-size: 1.1rem; margin-bottom: 4px; }
         .variant-uploads-section > p { color: #64748b; font-size: 0.85rem; margin-bottom: 16px; }
         .variant-upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
         .variant-upload-card { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; }
@@ -510,7 +512,7 @@
         }
 
         .download-section h3 {
-            color: #F16365;
+            color: #fff;
             font-size: 1.1rem;
             margin-bottom: 16px;
         }
@@ -627,10 +629,7 @@
             font-weight: 800;
             line-height: 1.15;
             margin-bottom: 20px;
-            background: linear-gradient(90deg, #7FBBE6, #F16365);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: #fff;
         }
         .hero-lead {
             font-size: 1.2rem;
@@ -664,10 +663,7 @@
             font-size: 2rem;
             text-align: center;
             margin-bottom: 12px;
-            background: linear-gradient(90deg, #7FBBE6, #F16365);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: #fff;
         }
         .section-lead {
             text-align: center;
@@ -798,10 +794,7 @@
         .footer-brand .logo-small {
             font-size: 1.4rem;
             font-weight: 700;
-            background: linear-gradient(90deg, #7FBBE6, #F16365);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: #fff;
             margin-bottom: 10px;
         }
         .footer-brand p {
@@ -865,7 +858,7 @@
             <p class="upload-text">
                 Drag & drop your image here or <span>browse files</span>
             </p>
-            <p style="color: #64748b; margin-top: 10px; font-size: 0.9rem;">
+            <p style="color: rgba(255, 255, 255, 0.85); margin-top: 10px; font-size: 0.9rem;">
                 Supports JPG, PNG, GIF, WEBP
             </p>
             <input type="file" id="fileInput" accept="image/*">
