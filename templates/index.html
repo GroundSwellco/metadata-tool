@@ -12,10 +12,14 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            font-family: 'NeuzeitGro-Reg', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #2C3B4C 0%, #1F2A36 100%);
             min-height: 100vh;
             color: #fff;
+        }
+
+        h1, h2, h3, h4, h5, h6, .logo, .footer-brand .logo-small, .btn, .btn-primary, .btn-secondary, .new-upload-btn {
+            font-family: 'NHaasGroteskTXPro', 'Helvetica Neue', Helvetica, Arial, sans-serif;
         }
 
         .container {
@@ -32,7 +36,7 @@
         .logo {
             font-size: 2.5rem;
             font-weight: 700;
-            background: linear-gradient(90deg, #00d4ff, #7c3aed);
+            background: linear-gradient(90deg, #7FBBE6, #F16365);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -55,8 +59,8 @@
         }
 
         .upload-section:hover, .upload-section.dragover {
-            border-color: #00d4ff;
-            background: rgba(0, 212, 255, 0.05);
+            border-color: #7FBBE6;
+            background: rgba(127, 187, 230, 0.05);
         }
 
         .upload-icon {
@@ -70,7 +74,7 @@
         }
 
         .upload-text span {
-            color: #00d4ff;
+            color: #7FBBE6;
             cursor: pointer;
         }
 
@@ -88,7 +92,7 @@
             width: 60px;
             height: 60px;
             border: 4px solid rgba(255, 255, 255, 0.1);
-            border-left-color: #00d4ff;
+            border-left-color: #7FBBE6;
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin: 0 auto 20px;
@@ -114,7 +118,7 @@
 
         .result-title {
             font-size: 1.8rem;
-            color: #00d4ff;
+            color: #7FBBE6;
         }
 
         .button-group {
@@ -135,7 +139,14 @@
         }
 
         .btn-primary {
-            background: linear-gradient(90deg, #00d4ff, #7c3aed);
+            background: linear-gradient(135deg, #F16365 0%, #FBD779 100%);
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(241, 99, 101, 0.35);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #FBD779 0%, #F16365 100%);
+            box-shadow: 0 6px 18px rgba(251, 215, 121, 0.4);
         }
 
         .btn-secondary {
@@ -145,7 +156,7 @@
 
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
+            box-shadow: 0 4px 20px rgba(127, 187, 230, 0.3);
         }
 
         .btn:disabled {
@@ -177,7 +188,7 @@
         }
 
         .tab-btn.active {
-            background: rgba(124, 58, 237, 0.3);
+            background: rgba(241, 99, 101, 0.3);
             color: #fff;
         }
 
@@ -187,8 +198,8 @@
 
         .tab-badge {
             display: inline-block;
-            background: rgba(0, 212, 255, 0.2);
-            color: #00d4ff;
+            background: rgba(127, 187, 230, 0.2);
+            color: #7FBBE6;
             padding: 2px 8px;
             border-radius: 10px;
             font-size: 0.75rem;
@@ -211,7 +222,7 @@
         }
 
         .panel-header h3 {
-            color: #7c3aed;
+            color: #F16365;
             font-size: 1.1rem;
             margin-bottom: 4px;
         }
@@ -273,7 +284,7 @@
 
         .field-input:focus {
             outline: none;
-            border-color: #7c3aed;
+            border-color: #F16365;
         }
 
         .field-input::placeholder {
@@ -299,7 +310,7 @@
         .keyword-tag {
             display: inline-flex;
             align-items: center;
-            background: rgba(124, 58, 237, 0.2);
+            background: rgba(241, 99, 101, 0.2);
             color: #c4b5fd;
             padding: 4px 10px;
             border-radius: 20px;
@@ -366,8 +377,8 @@
         }
 
         .new-upload-btn:hover {
-            border-color: #00d4ff;
-            color: #00d4ff;
+            border-color: #7FBBE6;
+            color: #7FBBE6;
         }
 
         .error {
@@ -388,7 +399,7 @@
         }
 
         footer a {
-            color: #00d4ff;
+            color: #7FBBE6;
             text-decoration: none;
         }
 
@@ -451,25 +462,25 @@
 
         .variant-select-section { margin-top: 16px; }
         .variant-select-header { cursor: pointer; color: #94a3b8; display: flex; justify-content: center; gap: 8px; align-items: center; padding: 12px; transition: color 0.3s; font-size: 0.95rem; }
-        .variant-select-header:hover { color: #00d4ff; }
+        .variant-select-header:hover { color: #7FBBE6; }
         .variant-select-body { display: none; padding-top: 12px; }
         .variant-select-body.open { display: block; }
         .variant-select-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
         .variant-select-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 16px; text-align: center; cursor: pointer; transition: all 0.3s; }
-        .variant-select-card:hover { border-color: #00d4ff; background: rgba(0,212,255,0.05); }
+        .variant-select-card:hover { border-color: #7FBBE6; background: rgba(127,187,230,0.05); }
         .variant-select-card .vs-name { display: block; color: #e2e8f0; font-weight: 500; margin-bottom: 4px; }
         .variant-select-card .vs-size { display: block; color: #64748b; font-size: 0.8rem; }
 
         .variant-uploads-section { margin-bottom: 20px; }
-        .variant-uploads-section h3 { color: #7c3aed; font-size: 1.1rem; margin-bottom: 4px; }
+        .variant-uploads-section h3 { color: #F16365; font-size: 1.1rem; margin-bottom: 4px; }
         .variant-uploads-section > p { color: #64748b; font-size: 0.85rem; margin-bottom: 16px; }
         .variant-upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
         .variant-upload-card { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; }
         .variant-upload-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; color: #e2e8f0; font-weight: 500; }
         .variant-size { color: #64748b; font-size: 0.8rem; }
         .variant-upload-zone { border: 2px dashed rgba(255,255,255,0.15); border-radius: 8px; padding: 20px 16px; cursor: pointer; transition: all 0.3s; min-height: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-        .variant-upload-zone:hover { border-color: #00d4ff; background: rgba(0,212,255,0.05); }
-        .variant-upload-zone.has-file { border-color: rgba(124,58,237,0.4); border-style: solid; }
+        .variant-upload-zone:hover { border-color: #7FBBE6; background: rgba(127,187,230,0.05); }
+        .variant-upload-zone.has-file { border-color: rgba(241,99,101,0.4); border-style: solid; }
         .variant-upload-zone img { max-height: 80px; max-width: 100%; border-radius: 4px; margin-bottom: 8px; }
         .variant-upload-zone p { color: #64748b; font-size: 0.85rem; margin: 0; }
         .variant-remove-btn { margin-top: 8px; font-size: 0.8rem; padding: 4px 12px; }
@@ -483,7 +494,7 @@
         }
 
         .download-section h3 {
-            color: #7c3aed;
+            color: #F16365;
             font-size: 1.1rem;
             margin-bottom: 16px;
         }
@@ -537,7 +548,7 @@
             user-select: none;
         }
 
-        .context-header:hover { color: #00d4ff; }
+        .context-header:hover { color: #7FBBE6; }
 
         .context-body {
             padding: 0 20px 20px;
@@ -600,7 +611,7 @@
             font-weight: 800;
             line-height: 1.15;
             margin-bottom: 20px;
-            background: linear-gradient(90deg, #00d4ff, #7c3aed);
+            background: linear-gradient(90deg, #7FBBE6, #F16365);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -637,7 +648,7 @@
             font-size: 2rem;
             text-align: center;
             margin-bottom: 12px;
-            background: linear-gradient(90deg, #00d4ff, #7c3aed);
+            background: linear-gradient(90deg, #7FBBE6, #F16365);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -664,12 +675,12 @@
         }
         .step-card:hover {
             transform: translateY(-4px);
-            border-color: rgba(0, 212, 255, 0.4);
+            border-color: rgba(127, 187, 230, 0.4);
         }
         .step-number {
             font-size: 0.8rem;
             font-weight: 700;
-            color: #00d4ff;
+            color: #7FBBE6;
             letter-spacing: 2px;
             margin-bottom: 12px;
         }
@@ -696,7 +707,7 @@
         }
         .feature-card:hover {
             transform: translateY(-3px);
-            border-color: rgba(124, 58, 237, 0.4);
+            border-color: rgba(241, 99, 101, 0.4);
         }
         .feature-icon {
             font-size: 1.8rem;
@@ -740,8 +751,8 @@
             text-align: right;
         }
         .cta-band {
-            background: linear-gradient(135deg, rgba(0, 212, 255, 0.08), rgba(124, 58, 237, 0.08));
-            border: 1px solid rgba(0, 212, 255, 0.2);
+            background: linear-gradient(135deg, rgba(127, 187, 230, 0.08), rgba(241, 99, 101, 0.08));
+            border: 1px solid rgba(127, 187, 230, 0.2);
             border-radius: 20px;
             padding: 48px 40px;
             text-align: center;
@@ -771,7 +782,7 @@
         .footer-brand .logo-small {
             font-size: 1.4rem;
             font-weight: 700;
-            background: linear-gradient(90deg, #00d4ff, #7c3aed);
+            background: linear-gradient(90deg, #7FBBE6, #F16365);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -796,7 +807,7 @@
             padding: 4px 0;
         }
         .footer-col a:hover {
-            color: #00d4ff;
+            color: #7FBBE6;
         }
         .footer-bottom {
             text-align: center;
@@ -810,7 +821,7 @@
             text-decoration: none;
         }
         .footer-bottom a:hover {
-            color: #00d4ff;
+            color: #7FBBE6;
         }
         @media (max-width: 768px) {
             .hero h1 { font-size: 2rem; }
@@ -1399,7 +1410,7 @@
             const removeBtn = document.getElementById(type + 'RemoveBtn');
 
             zone.addEventListener('click', () => input.click());
-            zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.style.borderColor = '#00d4ff'; });
+            zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.style.borderColor = '#7FBBE6'; });
             zone.addEventListener('dragleave', () => { zone.style.borderColor = ''; });
             zone.addEventListener('drop', (e) => {
                 e.preventDefault(); zone.style.borderColor = '';
